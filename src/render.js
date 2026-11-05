@@ -62,12 +62,14 @@ export class Renderer {
       at(fl === '=' ? 'carpet' : fl === '_' ? 'stone' : (r + c) % 2 ? 'grassB' : 'grassA', r, c);
       if (r > 0 && '#fQ'.includes(M[r - 1][c]) && !'#fQ'.includes(chx)) at('wallShadow', r, c);
       if (level.TG.has(r + ',' + c)) {
+        const hc = (level.heartColorAt && level.heartColorAt[r + ',' + c]) || 0;
         const sk = sink[r + ',' + c], off = Math.round(sk * 2);
         if (sk > 0) { ctx.globalAlpha = sk; at('platePit', r, c); ctx.globalAlpha = 1; }
         if (off < 2) at('plateLip', r, c);
-        ctx.drawImage(C.plateFace, c * 16, r * 16 + off);
-        if (sk > 0) { ctx.globalAlpha = sk; ctx.drawImage(C.plateFaceDark, c * 16, r * 16 + off); ctx.globalAlpha = 1; }
+        ctx.drawImage(C['plateFace' + (hc || '')] || C.plateFace, c * 16, r * 16 + off);
+        if (sk > 0 && !hc) { ctx.globalAlpha = sk; ctx.drawImage(C.plateFaceDark, c * 16, r * 16 + off); ctx.globalAlpha = 1; }
       }
+
       if (fl === 'o') at('warp' + frame, r, c);
     }));
 
@@ -115,14 +117,15 @@ export class Renderer {
     // Warp sparkles (not on the tile the player occupies).
     level.WARPS.forEach((w) => { if (!(s.player.r === w.r && s.player.c === w.c)) at('warpFx' + frame, w.r, w.c); });
 
-    // Boxes (gift/cake) — gold + sparkle when delivered, cyan glow when not.
+    // Boxes (gift/cake) — gold + sparkle when correctly placed, cyan glow when not.
     s.boxes.forEach((b) => {
-      const on = level.TG.has(b.r + ',' + b.c);
+      const placed = level.boxPlaced(b);
       const by = b.r * 16 + sinkPx(b.r, b.c), bx = b.c * 16;
       ctx.drawImage(C.shadow, bx, by);
-      if (!on) glow(b.kind, bx, by);
-      ctx.drawImage(C[b.kind + (on ? 'On' : '')], bx, by);
-      if (on) at('sparkle', b.r, b.c);
+      if (!placed) glow(b.kind, bx, by);
+      const key = placed ? (b.kind + 'On') : (b.color ? 'gift' + b.color : b.kind);
+      ctx.drawImage(C[key] || C[b.kind], bx, by);
+      if (placed) at('sparkle', b.r, b.c);
     });
 
     // Groom.

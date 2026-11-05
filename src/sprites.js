@@ -87,6 +87,16 @@ export function buildSprites() {
   R.cageBars = norm(['', 'KKKKKKKKKKKKKKKK', 'KYYYYYYYYYYYYYYK', 'KyyyyyyyyyyyyyyK', 'KKKKKKKKKKKKKKKK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KnK.KnK..KnK.KnK', 'KnK.KnK..KnK.KnK']);
   R.cageBase = norm([...Array(11).fill(''), '.OOOOOOOOOOOOOO.', 'KKKKKKKKKKKKKKKK', 'KnnnnnnnnnnnnnnK', 'KKKKKKKKKKKKKKKK']);
 
+  // Colored gift<->heart pairs (color id -> palette keys). gift<N> recolors the
+  // ribbon; plateFace<N> recolors the heart on the goal plate. Placed gifts still
+  // use the gold giftOn. Color 1 = blue (something blue), 2 = lavender.
+  const COLORS = { 1: { mid: 'U', dark: 'D', light: 'u' }, 2: { mid: 'V', dark: 'J', light: 'I' } };
+  Object.keys(COLORS).forEach((n) => {
+    const col = COLORS[n];
+    R['gift' + n] = swap(R.gift, { R: col.mid, r: col.dark });
+    R['plateFace' + n] = swap(R.plateFace, { R: col.mid, r: col.dark, P: col.light });
+  });
+
   const C = {};
   Object.keys(R).forEach((k) => { C[k] = paint(R[k]); });
 

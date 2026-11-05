@@ -9,8 +9,8 @@
 // Map chars:   # Wall  Q Chapel brick  f Picket fence  h Guest chair  l Lantern
 //              B Bride  @ Groom start  $ Gift(push)  k Cake(push)  O Rolling stone  c Heart cage
 
-const FLOORS = '.=_~xo';
-const TOPS = '.#QfhlB@$kOc';
+const FLOORS = '.=_~xo123456789';     // digits 1-9 = colored hearts (color id)
+const TOPS = '.#QfhlB@$kOc123456789'; // digits 1-9 = colored gifts (pushable, color id)
 const SOLIDTOP = '#fhlBQ'; // solid map objects (matches prototype's solid() test)
 
 function sanitizeFloor(ch) { return FLOORS.includes(ch) ? ch : '.'; }
@@ -53,14 +53,16 @@ export class Level {
     this.MAP = normalizeLayer(rawMap, w, h, 'top');
 
     // Derived sets.
-    this.TG = new Set();   // goal (heart) tiles "r,c"
+    this.TG = new Set();        // goal (heart) tiles "r,c"
+    this.heartColorAt = {};     // "r,c" -> color id (0 = neutral 'x')
     this.CAGES = [];
     this.BRIDES = [];
     this.WARPS = [];
     for (let r = 0; r < h; r++) {
       for (let c = 0; c < w; c++) {
-        if (this.F[r][c] === 'x') this.TG.add(r + ',' + c);
-        if (this.F[r][c] === 'o') this.WARPS.push({ r, c });
+        const fc = this.F[r][c];
+        if (fc === 'x' || (fc >= '1' && fc <= '9')) { this.TG.add(r + ',' + c); this.heartColorAt[r + ',' + c] = fc === 'x' ? 0 : +fc; }
+        if (fc === 'o') this.WARPS.push({ r, c });
         const m = this.MAP[r][c];
         if (m === 'c') this.CAGES.push({ r, c });
         if (m === 'B') this.BRIDES.push({ r, c });
@@ -77,8 +79,9 @@ export class Level {
       for (let c = 0; c < this.w; c++) {
         const ch = this.MAP[r][c];
         if (ch === '@') player = { r, c };
-        else if (ch === '$') boxes.push({ r, c, kind: 'gift' });
-        else if (ch === 'k') boxes.push({ r, c, kind: 'cake' });
+        else if (ch === '$') boxes.push({ r, c, kind: 'gift', color: 0 });
+        else if (ch === 'k') boxes.push({ r, c, kind: 'cake', color: 0 });
+        else if (ch >= '1' && ch <= '9') boxes.push({ r, c, kind: 'gift', color: +ch });
         else if (ch === 'O') stones.push({ r, c });
       }
     }
@@ -96,12 +99,27 @@ export class Level {
     );
   }
 
-  placedCount(boxes) { return boxes.filter((b) => this.TG.has(b.r + ',' + b.c)).length; }
+  // A box is "placed" when it sits on a heart it matches: a neutral heart ('x')
+  // accepts any gift; a colored heart needs a same-color gift.
+  boxPlaced(b) {
+    const k = b.r + ',' + b.c;
+    if (!this.TG.has(k)) return false;
+    const hc = this.heartColorAt[k] || 0;
+    return hc === 0 || (b.color || 0) === hc;
+  }
+  placedCount(boxes) { return boxes.filter((b) => this.boxPlaced(b)).length; }
 
   cageOpen(state) {
     if (!this.CAGES.length) return false;
     const occ = new Set([...state.boxes, ...(state.stones || []), state.player].map((o) => o.r + ',' + o.c));
-    return (this.TG.size > 0 && [...this.TG].every((k) => occ.has(k))) || this.CAGES.some((g) => occ.has(g.r + ',' + g.c));
+    const boxAt = {};
+    state.boxes.forEach((b) => { boxAt[b.r + ',' + b.c] = b; });
+    const allFilled = this.TG.size > 0 && [...this.TG].every((k) => {
+      const hc = this.heartColorAt[k] || 0;
+      if (hc === 0) return occ.has(k);                 // neutral heart: any occupant
+      const b = boxAt[k]; return b && (b.color || 0) === hc; // colored heart: matching gift only
+    });
+    return allFilled || this.CAGES.some((g) => occ.has(g.r + ',' + g.c));
   }
 
   isWon(state) {
@@ -118,7 +136,7 @@ export class Level {
     const fresh = this.fresh();
     if (state.boxes.length !== fresh.boxes.length || state.stones.length !== fresh.stones.length) return false;
     // Same multiset of box kinds.
-    const kinds = (arr) => arr.map((b) => b.kind || 'gift').sort().join(',');
+    const kinds = (arr) => arr.map((b) => (b.kind || 'gift') + (b.color || 0)).sort().join(',');
     if (kinds(state.boxes) !== kinds(fresh.boxes)) return false;
     const inBounds = (o) => o && o.r >= 0 && o.r < this.h && o.c >= 0 && o.c < this.w;
     const staticSolid = (r, c) => this.F[r][c] === '~' || SOLIDTOP.includes(this.MAP[r][c]) || this.MAP[r][c] === 'c';

@@ -48,6 +48,11 @@ Designer** tool from the handoff and export `levels.json` (same format); run eve
 the tester — especially the bride-enclosure rule documented in `docs/stage-design.md`. The couple's
 initials shown above the characters are set in `config.js` (`couple`).
 
+**Colored gift↔heart pairs** are supported for harder puzzles: a **digit `1`–`9` on the floor
+layer = a colored heart**, the **same digit on the map layer = its colored gift**, and a colored
+heart is only satisfied by its matching-color gift (so a cage opens only when every colored heart
+has the right gift). `1` = blue, `2` = lavender. See `contrib/color-demo.json`.
+
 ## Notes
 
 - Ranking is by distinct stages cleared, keyed on the player's (normalized) name; ties go to whoever reached the count first. The whole point is clearing clever, hard stages — not move/time optimization.

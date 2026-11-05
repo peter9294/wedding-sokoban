@@ -6,5 +6,6 @@ export const PAL = {
   S: '#f8cfa6', s: '#dd9f78', H: '#5a3326', h: '#7d4a35', A: '#c0643a', B: '#2f2b44',
   b: '#4b4668', G: '#9ad35b', g: '#86c34d', q: '#6fae42', L: '#4f9e45', l: '#2f6e3b',
   U: '#5bc3e8', u: '#b0e8f7', D: '#3a8cc4', t: '#8b5634', C: '#d8445a', c: '#a42e47',
-  E: '#efe2c2', e: '#d6c296', O: 'rgba(42,31,61,0.22)'
+  E: '#efe2c2', e: '#d6c296', O: 'rgba(42,31,61,0.22)',
+  V: '#9a5fd0', J: '#5f3a94', I: '#c9aef0'  // lavender shades for colored gifts (blue reuses U/D/u)
 };
