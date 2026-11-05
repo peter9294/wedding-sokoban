@@ -1,11 +1,26 @@
 // Canvas renderer — ported from the prototype's draw().
 // Holds small mutable animation state (heart press, cage open) between frames.
 
+// 3x5 pixel font for the couple's initials (A–Z + '_' fallback).
+const FONT3x5 = {
+  A: ['010', '101', '111', '101', '101'], B: ['110', '101', '110', '101', '110'], C: ['011', '100', '100', '100', '011'],
+  D: ['110', '101', '101', '101', '110'], E: ['111', '100', '110', '100', '111'], F: ['111', '100', '110', '100', '100'],
+  G: ['011', '100', '101', '101', '011'], H: ['101', '101', '111', '101', '101'], I: ['111', '010', '010', '010', '111'],
+  J: ['001', '001', '001', '101', '010'], K: ['101', '110', '100', '110', '101'], L: ['100', '100', '100', '100', '111'],
+  M: ['101', '111', '111', '101', '101'], N: ['101', '111', '111', '111', '101'], O: ['010', '101', '101', '101', '010'],
+  P: ['110', '101', '110', '100', '100'], Q: ['010', '101', '101', '110', '011'], R: ['110', '101', '110', '101', '101'],
+  S: ['011', '100', '010', '001', '110'], T: ['111', '010', '010', '010', '010'], U: ['101', '101', '101', '101', '011'],
+  V: ['101', '101', '101', '101', '010'], W: ['101', '101', '111', '111', '101'], X: ['101', '101', '010', '101', '101'],
+  Y: ['101', '101', '010', '010', '010'], Z: ['111', '001', '010', '100', '111'], _: ['111', '101', '101', '101', '111']
+};
+
 export class Renderer {
   constructor(sprites) {
     this.C = sprites;
     this.press = {};   // per-heart sink animation: "r,c" -> {d, t}
     this.cageA = null; // cage open/close animation
+    this.initials = { bride: 'A', groom: 'P' }; // overridden from config by the game
+    this._badges = {};
   }
 
   // Call when switching to a new level so animations don't carry over.
@@ -139,5 +154,32 @@ export class Renderer {
       });
       ctx.globalCompositeOperation = 'source-over';
     }
+
+    // Couple initials, drawn last so lighting doesn't tint the labels.
+    const bi = this.initials && this.initials.bride;
+    const gi = this.initials && this.initials.groom;
+    if (bi) level.BRIDES.forEach((b) => this.drawBadge(ctx, bi, b.r, b.c));
+    if (gi) this.drawBadge(ctx, gi, s.player.r, s.player.c);
+  }
+
+  badge(letter) {
+    const key = (String(letter || '').toUpperCase().match(/[A-Z]/) || ['_'])[0];
+    if (this._badges[key]) return this._badges[key];
+    const W = 7, PILL = 7, H = PILL + 2;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const x = cv.getContext('2d');
+    const INK = '#3a2433', CREAM = '#fffaf4';
+    x.fillStyle = INK; x.fillRect(0, 0, W, PILL);
+    x.fillStyle = CREAM; x.fillRect(1, 1, W - 2, PILL - 2);
+    x.fillStyle = INK; x.fillRect(2, PILL, 3, 1); x.fillRect(3, PILL + 1, 1, 1); // downward tail
+    x.fillStyle = INK;
+    (FONT3x5[key] || FONT3x5._).forEach((row, gy) => { for (let gx = 0; gx < 3; gx++) if (row[gx] === '1') x.fillRect(2 + gx, 1 + gy, 1, 1); });
+    this._badges[key] = cv;
+    return cv;
+  }
+
+  drawBadge(ctx, letter, r, c) {
+    const b = this.badge(letter);
+    ctx.drawImage(b, c * 16 + 8 - (b.width >> 1), r * 16 - (b.height - 2));
   }
 }

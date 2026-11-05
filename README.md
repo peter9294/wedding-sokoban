@@ -25,7 +25,7 @@ Two static sites in one repo: the **game** and a live **leaderboard**.
 index.html            game shell
 leaderboard/          the leaderboard page
 config.js             <-- the ONE file you edit to connect Google (see SETUP.md)
-levels.json           stages (3 throwaway placeholders; replace with your own)
+levels.json           stages (5 tested cage->bride tutorial levels; extensible)
 src/
   engine.js           pure rules: push / cages / warps / stones / win  (ported from the handoff)
   sprites.js          16x16 pixel-art sprite builder (ported)
@@ -42,8 +42,11 @@ the game screens, persistence, scoring, and leaderboard are new.
 
 ## Design / levels
 
-Level **design** is intentionally left to you — author stages with the **Level Designer** tool from
-the original handoff and export `levels.json` (same format). See the bottom of SETUP.md.
+The game ships **5 tested cage→bride tutorial stages**, built in a dedicated stage-design pass and
+validated by `tools/stage-tester.mjs` (solvable + exploit-free). Author more with the **Level
+Designer** tool from the handoff and export `levels.json` (same format); run every new stage through
+the tester — especially the bride-enclosure rule documented in `docs/stage-design.md`. The couple's
+initials shown above the characters are set in `config.js` (`couple`).
 
 ## Notes
 

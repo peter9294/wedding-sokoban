@@ -9,10 +9,13 @@ export const CONFIG = {
   // Shown on the countdown in the play HUD. Use the real wedding date/time.
   weddingDate: '2026-12-31T16:00',       // ISO local time, e.g. '2026-12-31T16:00'
 
+  // Initials shown above the characters (the couple). One letter each.
+  couple: { bride: 'A', groom: 'P' },    // Anna / Peter
+
   // Levels -----------------------------------------------------------------
   // GitHub Pages caches files ~10 min. Bump this whenever you edit levels.json
   // so players fetch the new version instead of a stale cached copy.
-  levelsVersion: '1',
+  levelsVersion: '2',
 
   // Google Form (score saving) --------------------------------------------
   // The form's POST endpoint (the PUBLISHED url, ending in /formResponse):

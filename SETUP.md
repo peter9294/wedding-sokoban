@@ -71,7 +71,7 @@ Test rows: the script submits one row named `tester`, which is hidden on the lea
 
 ## Adding your real levels
 
-The game ships with 3 throwaway placeholder stages in **`levels.json`**. Replace them with your own:
+The game ships **5 tested cage→bride tutorial stages** in **`levels.json`** (from the stage-design pass; an opt-in copy also lives at `contrib/levels.sample.json`, and `tools/stage-tester.mjs` validates any level set). To add or replace stages:
 
 - `levels.json` is an array of `{ name, lighting, wallStyle, floor[], map[] }` (the handoff format). The **Level Designer** tool in the original handoff zip authors and validates these and exports exactly this file.
 - After editing `levels.json`, **bump `levelsVersion`** in `config.js` (e.g. `'1'` → `'2'`) and push — otherwise GitHub Pages may serve a cached copy for ~10 minutes.

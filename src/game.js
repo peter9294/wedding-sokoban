@@ -1,11 +1,11 @@
 // Something Pushed — game controller.
 // Screens: name -> tutorial -> play -> (win overlay) -> next stage -> all-clear.
-import { CONFIG, CAN_SUBMIT } from '../config.js';
+import { CONFIG, CAN_SUBMIT, CAN_READ } from '../config.js';
 import { Level, levelSignature } from './engine.js';
 import { buildSprites } from './sprites.js';
 import { Renderer } from './render.js';
 import { loadProgress, saveProgress, clampName, newSessionId } from './storage.js';
-import { enqueueScore, flushOutbox } from './score.js';
+import { enqueueScore, flushOutbox, fetchSheetRows, confirmSent } from './score.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -33,6 +33,10 @@ async function init() {
 
   sprites = buildSprites();
   renderer = new Renderer(sprites);
+  renderer.initials = {
+    bride: (CONFIG.couple && CONFIG.couple.bride) || '',
+    groom: (CONFIG.couple && CONFIG.couple.groom) || ''
+  };
   ctx = $('board').getContext('2d');
 
   try {
@@ -48,6 +52,8 @@ async function init() {
   IDS = LEVELS.map(levelSignature);
 
   flushOutbox(); // retry any submissions queued on a previous visit
+  // Read-after-write: once we can see a clear in the Sheet, drop it from the outbox.
+  if (CAN_READ) fetchSheetRows().then(confirmSent).catch(() => {});
 
   bindEvents();
   startLoop();
@@ -183,7 +189,7 @@ function undo() {
 }
 
 function restart() {
-  if (!level) return;
+  if (!level || won) return;
   anim = null;
   renderer.reset();
   state = level.fresh();
@@ -300,6 +306,7 @@ function bindEvents() {
 
   window.addEventListener('keydown', (e) => {
     if (currentScreen !== 'play') return;
+    if (!$('overlay-win').hidden || !$('overlay-allclear').hidden) return; // popup open: ignore game keys
     const k = e.key.toLowerCase();
     const map = { arrowup: ['up'], w: ['up'], arrowdown: ['down'], s: ['down'], arrowleft: ['left'], a: ['left'], arrowright: ['right'], d: ['right'] };
     if (map[k]) { e.preventDefault(); const dir = map[k][0]; const [dr, dc] = DIRS[dir]; doMove(dr, dc, dir); }
