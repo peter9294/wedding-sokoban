@@ -63,7 +63,8 @@ function schedule() {
   clearTimeout(timer);
   if (document.hidden) return; // paused; visibilitychange resumes
   const base = CONFIG.leaderboard.pollMs || 15000;
-  timer = setTimeout(poll, base * (1 + backoff));
+  const jitter = Math.random() * base * 0.4; // spread many clients out so they don't all poll in lockstep
+  timer = setTimeout(poll, base * (1 + backoff) + jitter);
 }
 
 document.addEventListener('visibilitychange', () => {

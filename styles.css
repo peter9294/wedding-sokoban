@@ -70,7 +70,7 @@ body { overflow: hidden; overscroll-behavior: none; }
 .hud .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .hud .count { text-align: right; }
 .hud .count .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--wine); }
-.hud .count .val { font-family: var(--title); font-weight: 700; font-size: 15px; }
+.hud .count .val { font-family: var(--body); font-weight: 500; font-size: 14px; letter-spacing: .02em; }
 
 .board-wrap {
   flex: 1; display: flex; align-items: center; justify-content: center;
@@ -115,7 +115,7 @@ body { overflow: hidden; overscroll-behavior: none; }
 }
 .panel .big { font-family: var(--title); font-weight: 700; font-size: 26px; color: var(--wine); }
 .panel .note { color: var(--muted); font-size: 13px; }
-.panel .stat { font-family: var(--title); font-weight: 700; font-size: 18px; }
+.panel .stat { font-family: var(--body); font-weight: 500; font-size: 16px; }
 .panel .row { display: flex; gap: 8px; }
 .panel .row .btn { flex: 1; }
 

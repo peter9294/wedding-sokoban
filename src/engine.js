@@ -11,7 +11,7 @@
 
 const FLOORS = '.=_~xo123456789';     // digits 1-9 = colored hearts (color id)
 const TOPS = '.#QfhlB@$kOc123456789'; // digits 1-9 = colored gifts (pushable, color id)
-const SOLIDTOP = '#fhlBQ'; // solid map objects (matches prototype's solid() test)
+const SOLIDTOP = '#fhlQ'; // solid map objects; bride 'B' is walkable so the groom can step onto her to win
 
 function sanitizeFloor(ch) { return FLOORS.includes(ch) ? ch : '.'; }
 function sanitizeTop(ch) {
@@ -122,10 +122,11 @@ export class Level {
     return allFilled || this.CAGES.some((g) => occ.has(g.r + ',' + g.c));
   }
 
+  isBride(r, c) { return this.BRIDES.some((b) => b.r === r && b.c === c); }
   isWon(state) {
     if (!this.CAGES.length) return state.boxes.length > 0 && this.placedCount(state.boxes) === state.boxes.length;
     const p = state.player;
-    if (this.BRIDES.length) return this.BRIDES.some((b) => Math.abs(b.r - p.r) + Math.abs(b.c - p.c) === 1);
+    if (this.BRIDES.length) return this.BRIDES.some((b) => b.r === p.r && b.c === p.c); // win = groom steps onto the bride
     return this.cageOpen(state) && this.CAGES.some((g) => g.r === p.r && g.c === p.c);
   }
 
@@ -142,9 +143,11 @@ export class Level {
     const staticSolid = (r, c) => this.F[r][c] === '~' || SOLIDTOP.includes(this.MAP[r][c]) || this.MAP[r][c] === 'c';
     const all = [state.player, ...state.boxes, ...state.stones];
     const seen = new Set();
-    for (const o of all) {
+    for (let i = 0; i < all.length; i++) {
+      const o = all[i];
       if (!inBounds(o)) return false;
       if (staticSolid(o.r, o.c)) return false;
+      if (i > 0 && this.isBride(o.r, o.c)) return false; // only the groom may stand on the bride
       const k = o.r + ',' + o.c;
       if (seen.has(k)) return false; // two objects on one cell
       seen.add(k);
@@ -166,12 +169,12 @@ export class Level {
 
     if (bi >= 0) {
       const br = nr + dr, bc = nc + dc;
-      if (this.solid(s, br, bc) || occ(br, bc, boxes, stones)) return { state: { ...s, dir, push: true }, anim: null, moved: false, won: this.isWon(s) };
+      if (this.solid(s, br, bc) || occ(br, bc, boxes, stones) || this.isBride(br, bc)) return { state: { ...s, dir, push: true }, anim: null, moved: false, won: this.isWon(s) };
       boxes = boxes.map((b, i) => (i === bi ? { ...b, r: br, c: bc } : b));
       pushed = true;
     } else if (si >= 0) {
       let r = nr, c = nc;
-      while (!this.solid(s, r + dr, c + dc) && !occ(r + dr, c + dc, boxes, stones)) { r += dr; c += dc; }
+      while (!this.solid(s, r + dr, c + dc) && !occ(r + dr, c + dc, boxes, stones) && !this.isBride(r + dr, c + dc)) { r += dr; c += dc; }
       if (r === nr && c === nc) return { state: { ...s, dir, push: true }, anim: null, moved: false, won: this.isWon(s) };
       stones = stones.map((o, i) => (i === si ? { r, c } : o));
       pushed = true;

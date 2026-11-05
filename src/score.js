@@ -1,21 +1,14 @@
 // Score transport (Google Form "auto-filler") + leaderboard reader (gviz JSON).
-// Shared by the game (writes) and the leaderboard page (reads).
-import { CONFIG, CAN_SUBMIT, CAN_READ } from '../config.js';
+// Submitting: the game calls submitScore() exactly ONCE, at the moment a stage is
+// won, and records that stage in localStorage (see storage.js `sentStages`) so a
+// replay or a page reload never submits it again. There is NO interval/retry
+// submission — a score goes out only on a win.
+import { CONFIG, CAN_SUBMIT } from '../config.js';
 import { normName } from './storage.js';
 
-const OUTBOX_KEY = 'sp-outbox-v1';
-
-// --- Outbox (survives reloads; lets us retry silently-failed submits) -------
-function readOutbox() {
-  try { const r = localStorage.getItem(OUTBOX_KEY); return r ? JSON.parse(r) : []; } catch { return []; }
-}
-function writeOutbox(list) {
-  try { localStorage.setItem(OUTBOX_KEY, JSON.stringify(list)); } catch { /* ignore */ }
-}
-
-// --- Writing ----------------------------------------------------------------
-// One record = one stage clear: { name, solved, stage, session }.
-async function postRecord(record) {
+// Fire-and-forget: no-cors responses are opaque (we can't read success), and
+// keepalive lets the POST complete even if the tab closes right after the win.
+export async function submitScore(record) {
   if (!CAN_SUBMIT) return false;
   const e = CONFIG.form.entries;
   const body = new URLSearchParams();
@@ -24,8 +17,6 @@ async function postRecord(record) {
   if (e.stage) body.append(e.stage, String(record.stage));
   if (e.session) body.append(e.session, String(record.session));
   try {
-    // no-cors: the response is opaque (we can't read success) — confirmation
-    // comes later from read-after-write against the Sheet.
     await fetch(CONFIG.form.actionUrl, { method: 'POST', mode: 'no-cors', keepalive: true, body });
     return true;
   } catch {
@@ -33,41 +24,7 @@ async function postRecord(record) {
   }
 }
 
-// Queue a stage clear and attempt to send it now. `key` = the distinct-stage id
-// so we never enqueue the same clear twice.
-export function enqueueScore(record, key) {
-  if (!CAN_SUBMIT) return; // scoring not wired up yet — nothing to queue
-  const list = readOutbox();
-  if (!list.some((x) => x.key === key)) {
-    list.push({ key, record, tries: 0, firstAt: Date.now() });
-    writeOutbox(list);
-  }
-  flushOutbox();
-}
-
-export async function flushOutbox() {
-  if (!CAN_SUBMIT) return;
-  const list = readOutbox();
-  if (!list.length) return;
-  for (const item of list) {
-    // light backoff: skip items we've already tried a lot this session
-    if (item.tries >= 6) continue;
-    item.tries += 1;
-    await postRecord(item.record);
-  }
-  writeOutbox(list);
-}
-
-// Remove outbox items we can now SEE in the Sheet (read-after-write ack).
-export function confirmSent(rows) {
-  const list = readOutbox();
-  if (!list.length) return;
-  const seen = new Set(rows.map((r) => r.session + '|' + r.stage));
-  const remaining = list.filter((it) => !seen.has(it.record.session + '|' + it.record.stage));
-  if (remaining.length !== list.length) writeOutbox(remaining);
-}
-
-// --- Reading ----------------------------------------------------------------
+// --- Reading (leaderboard page only) ---------------------------------------
 function parseGvizDate(v) {
   // gviz datetimes arrive as the string "Date(2026,10,5,12,34,56)" (month 0-based,
   // which matches JS Date), in the spreadsheet's timezone.
@@ -88,7 +45,7 @@ function labelIndex(labels, names) {
 
 // Fetch the responses sheet and return rows in sheet (arrival) order.
 export async function fetchSheetRows() {
-  if (!CAN_READ) throw new Error('not-configured');
+  if (!CONFIG.sheet.readUrl) throw new Error('not-configured');
   const url = CONFIG.sheet.readUrl + (CONFIG.sheet.readUrl.includes('?') ? '&' : '?') + '_cb=' + Date.now();
   const res = await fetch(url, { method: 'GET' });
   const text = await res.text();
@@ -135,8 +92,8 @@ export function buildLeaderboard(rows) {
     const cur = byKey.get(key);
     if (!cur) {
       byKey.set(key, { name: r.name, solved: r.solved, atRow: r.rowIndex, ts: r.ts });
-    } else {
-      if (r.solved > cur.solved) { cur.solved = r.solved; cur.atRow = r.rowIndex; cur.ts = r.ts; cur.name = r.name; }
+    } else if (r.solved > cur.solved) {
+      cur.solved = r.solved; cur.atRow = r.rowIndex; cur.ts = r.ts; cur.name = r.name;
     }
   }
 

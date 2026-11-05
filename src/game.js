@@ -1,11 +1,11 @@
 // Something Pushed — game controller.
 // Screens: name -> tutorial -> play -> (win overlay) -> next stage -> all-clear.
-import { CONFIG, CAN_SUBMIT, CAN_READ } from '../config.js';
+import { CONFIG, CAN_SUBMIT } from '../config.js';
 import { Level, levelSignature } from './engine.js';
 import { buildSprites } from './sprites.js';
 import { Renderer } from './render.js';
 import { loadProgress, saveProgress, clampName, newSessionId } from './storage.js';
-import { enqueueScore, flushOutbox, fetchSheetRows, confirmSent } from './score.js';
+import { submitScore } from './score.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -51,9 +51,7 @@ async function init() {
   }
   IDS = LEVELS.map(levelSignature);
 
-  flushOutbox(); // retry any submissions queued on a previous visit
-  // Read-after-write: once we can see a clear in the Sheet, drop it from the outbox.
-  if (CAN_READ) fetchSheetRows().then(confirmSent).catch(() => {});
+  // Scores are submitted ONLY on a win (see handleWin) — never on an interval/retry.
 
   bindEvents();
   startLoop();
@@ -138,13 +136,11 @@ function handleWin() {
   if (!progress.cleared.includes(id)) progress.cleared.push(id);
   const solved = progress.cleared.length;
 
-  // Auto-submit the score — once per distinct stage per player.
+  // Submit the score — ONLY here (on a win), and only once per distinct stage.
+  // sentStages is persisted in localStorage, so a replay or reload never resubmits.
   if (CAN_SUBMIT && !progress.sentStages.includes(id)) {
-    enqueueScore(
-      { name: progress.name, solved, stage: stageIdx + 1, session: progress.sessionId },
-      id
-    );
     progress.sentStages.push(id);
+    submitScore({ name: progress.name, solved, stage: stageIdx + 1, session: progress.sessionId });
   }
   saveCurrent();
   updateHUD();
