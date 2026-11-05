@@ -117,16 +117,36 @@ and **drops** it, so nothing broken is ever emitted — you just lose a few
 candidates. Warps also enlarge the search, so a 4-gift `--colors 2 --warps` batch
 is slow (~1 min); drop to 3 gifts or a 5×5 room if you want it snappy.
 
-## Rolling stones (not yet generated)
+## Grading existing levels (`--grade FILE`)
+
+Point it at any level file — the live `levels.json`, the designers'
+`contrib/levels.sample.json`, a single stage — and it scores each one on the same
+scale by FORWARD-solving the board:
+
+```bash
+node tools/puzzle-forge.mjs --grade contrib/levels.sample.json
+```
+
+It handles every mechanic, **stones included**: it models the real win (fill the
+hearts — a neutral heart can be filled by a gift *or* a stone — so the cage opens,
+then the groom reaches the bride), solves to optimality, and reports pushes,
+returns, detour, trap, distinct optimal solutions, and a `✓` when the solution is
+confirmed by replaying it through the real engine. It's cross-checked against the
+generator — it reproduces the generated levels' numbers exactly. Use it to put an
+objective number on a hand-made stage ("is this actually hard, or does it just
+look busy?") before shipping.
+
+## Rolling stones — graded, not generated
 
 Stones slide until they hit something, which makes them wonderful hand-authored
-puzzle pieces (the designers already use them — Stone Bridge, Cold Feet) but a
-poor fit for this tool's *reverse* generation: "un-sliding" a stone from the
-solved board is ambiguous, and the solved board doesn't pin the stone anywhere,
-so reverse-BFS has no single source. Doing stones right needs a forward-search
-generator (or a "grade this existing level" mode so the designers' hand-made
-stone stages get the same returns/detour/trap read). That's the honest next step
-rather than a shaky bolt-on.
+pieces (Stone Bridge, Cold Feet) but a poor fit for *reverse* generation:
+"un-sliding" a stone is ambiguous and the solved board doesn't pin it anywhere.
+So the tool **grades** stone stages (via `--grade`) rather than generating them.
+One honest caveat: returns / detour / trap are gift-centric, so a stone-heavy
+stage grades as solvable with a modest difficulty read even when the stone
+routing is the clever part — lean on `pushes` and `distinctOpt` there, and on your
+own eye. A full stone *generator* would need forward-search generation; grading
+was the higher-value half.
 
 ## Honest limits
 

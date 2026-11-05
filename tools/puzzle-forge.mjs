@@ -46,6 +46,7 @@
 //    node tools/puzzle-forge.mjs [--count 200] [--boxes 3] [--w 6] [--h 6]
 //                                [--keep 8] [--seed 1] [--out FILE] [--colors 0]
 //                                [--warps] [--minpush 6] [--maxpush 22]
+//    node tools/puzzle-forge.mjs --grade FILE    # score existing levels (stones incl.)
 // =============================================================================
 
 import { Level } from '../src/engine.js';
@@ -356,7 +357,7 @@ function cellsUsed(grid, graph, startKey) {
 //  Simulate the obvious human plan: each gift to its nearest free heart, in
 //  every ordering. Record if/where it bricks, and whether the trap is hidden.
 // =============================================================================
-function naiveTrap(grid, startBoxes, goals) {
+function naiveTrap(grid, startBoxes, goals, stoneCells = []) {
   const orderings = permutations([...startBoxes.keys()]);
   let failN = 0, depthSum = 0, hidden = 0, total = 0;
   for (const order of orderings) {
@@ -372,8 +373,8 @@ function naiveTrap(grid, startBoxes, goals) {
       let tgt = -1, bd = INF;
       for (const g of freeGoals) { if (!placed(grid, g, cols[oi])) continue; const d = boxPushDist(grid, cells[oi], g); if (d < bd) { bd = d; tgt = g; } }
       if (tgt < 0 || bd >= INF) { failedAt = done; hiddenFail = false; break; }
-      // push it there one cell at a time, treating other current gifts as walls
-      const others = new Set(cells.filter((_, j) => j !== oi));
+      // push it there one cell at a time, treating other gifts AND stones as walls
+      const others = new Set([...cells.filter((_, j) => j !== oi), ...stoneCells]);
       const route = boxRoute(grid, cells[oi], tgt, others);
       planned += bd;
       if (!route) { failedAt = done; hiddenFail = others.size > 0 /*blocked by a gift = hidden*/; break; }
@@ -615,13 +616,202 @@ function makeGridFromTemplate(iw, ih, tmpl) {
 //  Driver
 // =============================================================================
 function parseArgs(argv) {
-  const o = { count: 200, boxes: 3, w: 6, h: 6, keep: 8, seed: 1, out: path.join(__dirname, 'puzzle-forge.out.json'), minpush: 6, maxpush: 22, colors: 0, warps: false };
-  for (let i = 2; i < argv.length; i++) { const a = argv[i], nx = () => argv[++i]; const m = { '--count': 'count', '--boxes': 'boxes', '--w': 'w', '--h': 'h', '--keep': 'keep', '--seed': 'seed', '--minpush': 'minpush', '--maxpush': 'maxpush', '--colors': 'colors' }; if (a === '--out') o.out = nx(); else if (a === '--warps') o.warps = true; else if (m[a]) o[m[a]] = +nx(); }
+  const o = { count: 200, boxes: 3, w: 6, h: 6, keep: 8, seed: 1, out: path.join(__dirname, 'puzzle-forge.out.json'), minpush: 6, maxpush: 22, colors: 0, warps: false, grade: null };
+  for (let i = 2; i < argv.length; i++) { const a = argv[i], nx = () => argv[++i]; const m = { '--count': 'count', '--boxes': 'boxes', '--w': 'w', '--h': 'h', '--keep': 'keep', '--seed': 'seed', '--minpush': 'minpush', '--maxpush': 'maxpush', '--colors': 'colors' }; if (a === '--out') o.out = nx(); else if (a === '--grade') o.grade = nx(); else if (a === '--warps') o.warps = true; else if (m[a]) o[m[a]] = +nx(); }
   return o;
+}
+
+// =============================================================================
+//  Grade mode  —  score an EXISTING level (incl. stones) on the same metrics.
+//  Stones slide, so they can't be reverse-generated; instead we FORWARD-search
+//  the given board to the solved set and read the metrics off that graph.
+// =============================================================================
+function parseLevel(level) {
+  const floor = Array.isArray(level.floor) ? level.floor : [];
+  const map = Array.isArray(level.map) ? level.map : [];
+  const H = Math.max(floor.length, map.length, 1);
+  let W = 1; for (const r of floor) W = Math.max(W, r.length); for (const r of map) W = Math.max(W, r.length);
+  const g = new Grid(W, H);
+  const boxes = [], stones = []; let player = 0, hasCage = false;
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
+    const i = g.idx(r, c);
+    const fc = (floor[r] || '')[c] || '.';
+    const mc = (map[r] || '')[c] || '.';
+    if (fc === 'x') { g.goal[i] = 1; g.gcol[i] = 0; }
+    else if (fc >= '1' && fc <= '9') { g.goal[i] = 1; g.gcol[i] = +fc; }
+    else if (fc === 'o') g.warps.push(i);
+    else if (fc === '~') g.wall[i] = 1;                        // pond = solid
+    if (mc === 'c') hasCage = true;
+    if (mc === '#' || mc === 'Q' || mc === 'f' || mc === 'h' || mc === 'l' || mc === 'c' || mc === 'B') g.wall[i] = 1; // cage/bride walled for the pushing phase
+    else if (mc === '@') player = i;
+    else if (mc === '$' || mc === 'k') boxes.push(MK(i, 0));
+    else if (mc >= '1' && mc <= '9') boxes.push(MK(i, +mc));
+    else if (mc === 'O') stones.push(i);
+    else if (mc === '*') { boxes.push(MK(i, 0)); g.goal[i] = 1; g.gcol[i] = 0; }
+  }
+  if (g.warps.length !== 2) g.warps = [];
+  boxes.sort((a, b) => a - b); stones.sort((a, b) => a - b);
+  return { grid: g, boxes, stones, player, hasCage };
+}
+
+// Win model: without a cage, win = all gifts on matching hearts. With a cage, win
+// = every heart FILLED (neutral heart by a box OR a stone; colour heart by a
+// matching box) so the cage opens — then the groom reaches the bride.
+function makeGoal(grid, hasCage) {
+  const hearts = []; for (let i = 0; i < grid.N; i++) if (grid.goal[i]) hearts.push(i);
+  if (!hasCage) return (boxes) => isSolved(grid, boxes);
+  return (boxes, stones) => {
+    const bc = new Map(); for (const b of boxes) bc.set(POS(b), COL(b));
+    const ss = new Set(stones);
+    for (const k of hearts) {
+      const hc = grid.gcol[k];
+      if (hc === 0) { if (!(bc.has(k) || ss.has(k))) return false; }
+      else if (bc.get(k) !== hc) return false;
+    }
+    return true;
+  };
+}
+
+// forward push-state graph from a given start (gift pushes + stone slides).
+function forwardGraph(grid, start, goalFn, cap = 200000) {
+  const key = (b, s, p) => b.join(',') + '|' + s.join(',') + '|' + p;
+  const occAll = (b, s) => { const set = occ(b); for (const x of s) set.add(x); return set; };
+  const p0 = grid.reach(start.player, occAll(start.boxes, start.stones)).canon;
+  const startKey = key(start.boxes, start.stones, p0);
+  const g = new Map([[startKey, 0]]), node = new Map([[startKey, { boxes: start.boxes, stones: start.stones, player: p0 }]]);
+  const fwd = new Map(); const q = [startKey]; let L = -1; const solvedKeys = []; let truncated = false;
+  for (let h = 0; h < q.length; h++) {
+    if (node.size > cap) { truncated = true; break; }
+    const k = q[h]; const { boxes, stones, player } = node.get(k); const gc = g.get(k);
+    if (goalFn(boxes, stones)) { solvedKeys.push(k); if (L < 0) L = gc; continue; }
+    if (L >= 0 && gc >= L) continue;
+    const blockers = occAll(boxes, stones);
+    const { seen: region } = grid.reach(player, blockers);
+    const edges = []; fwd.set(k, edges);
+    for (let bi = 0; bi < boxes.length; bi++) {
+      const bp = POS(boxes[bi]), bc = COL(boxes[bi]); const dcol = grid.distByColor.get(bc);
+      for (const [dr, dc] of DIRS) {
+        const to = grid.step(bp, dr, dc), pusher = grid.step(bp, -dr, -dc);
+        if (to < 0 || pusher < 0) continue;
+        if (grid.wall[to] || blockers.has(to) || (dcol && dcol[to] >= INF)) continue;
+        if (grid.wall[pusher] || blockers.has(pusher) || !region[pusher]) continue;
+        const nb = boxes.slice(); nb[bi] = MK(to, bc); nb.sort((a, b) => a - b);
+        if (freezeDead(grid, to, bc, nb)) continue;
+        const np = grid.reach(bp, occAll(nb, stones)).canon;
+        const nk = key(nb, stones, np);
+        edges.push({ to: nk, obj: 'g', from: bp, dest: to, dr, dc });
+        if (!g.has(nk)) { g.set(nk, gc + 1); node.set(nk, { boxes: nb, stones, player: np }); q.push(nk); }
+      }
+    }
+    for (let si = 0; si < stones.length; si++) {
+      const sp = stones[si];
+      for (const [dr, dc] of DIRS) {
+        const pusher = grid.step(sp, -dr, -dc);
+        if (pusher < 0 || grid.wall[pusher] || blockers.has(pusher) || !region[pusher]) continue;
+        let cur = sp; while (true) { const nx = grid.step(cur, dr, dc); if (nx < 0 || grid.wall[nx] || blockers.has(nx)) break; cur = nx; } // slide to blocker
+        if (cur === sp) continue;
+        const ns = stones.slice(); ns[si] = cur; ns.sort((a, b) => a - b);
+        const np = grid.reach(sp, occAll(boxes, ns)).canon;
+        const nk = key(boxes, ns, np);
+        edges.push({ to: nk, obj: 's', from: sp, dest: cur, dr, dc });
+        if (!g.has(nk)) { g.set(nk, gc + 1); node.set(nk, { boxes, stones: ns, player: np }); q.push(nk); }
+      }
+    }
+  }
+  return { g, node, fwd, solvedKeys, L, truncated, startKey };
+}
+
+// min gift-runs (returns) + distinct optimal solutions, over the optimal DAG.
+function analyzeGraph(graph) {
+  const { g, fwd, solvedKeys, L, startKey } = graph;
+  const rev = new Map();
+  for (const [u, edges] of fwd) for (const e of edges) { if (!rev.has(e.to)) rev.set(e.to, []); rev.get(e.to).push(u); }
+  const dist = new Map(); const q = [];
+  for (const k of solvedKeys) { dist.set(k, 0); q.push(k); }
+  for (let h = 0; h < q.length; h++) { const cur = q[h], d = dist.get(cur); for (const u of (rev.get(cur) || [])) if (!dist.has(u)) { dist.set(u, d + 1); q.push(u); } }
+  const optEdge = (u, e) => { const dv = dist.get(e.to); return dv !== undefined && g.get(u) + 1 + dv === L; };
+  const memo = new Map(), choice = new Map();
+  function rec(k, last) {
+    if (dist.get(k) === 0) return 0;
+    const mk = k + '#' + last; if (memo.has(mk)) return memo.get(mk);
+    memo.set(mk, INF); let best = INF, bestE = null;
+    for (const e of (fwd.get(k) || [])) {
+      if (!optEdge(k, e)) continue;
+      const inc = e.obj === 'g' ? (e.from === last ? 0 : 1) : 0;      // stone pushes pass through a gift run
+      const nl = e.obj === 'g' ? e.dest : last;
+      const sub = rec(e.to, nl); if (sub + inc < best) { best = sub + inc; bestE = e; }
+    }
+    memo.set(mk, best); choice.set(mk, bestE); return best;
+  }
+  const minRuns = rec(startKey, -1);
+  const path = []; let cur = startKey, last = -1;
+  while (dist.get(cur) !== 0) { const e = choice.get(cur + '#' + last); if (!e) break; path.push(e); if (e.obj === 'g') last = e.dest; cur = e.to; }
+  const cmemo = new Map();
+  function cnt(k) { if (dist.get(k) === 0) return 1; if (cmemo.has(k)) return cmemo.get(k); cmemo.set(k, 0); let s = 0; for (const e of (fwd.get(k) || [])) { if (!optEdge(k, e)) continue; s += cnt(e.to); if (s >= 50) { s = 50; break; } } cmemo.set(k, s); return s; }
+  return { minRuns, path, distinct: cnt(startKey) };
+}
+
+// Replay a solution through the real engine and confirm it actually wins (fills
+// the hearts, and for a cage level walks the groom to the bride afterwards).
+function gradeVerify(level, grid, path) {
+  const L = new Level(level); let st = L.fresh();
+  for (const e of path) {
+    const [fr, fc] = grid.rc(e.from); const pr = fr - e.dr, pc = fc - e.dc;
+    const walk = walkPlayer(L, st, pr, pc);
+    if (!walk) return false;
+    for (const [dr, dc] of walk) st = L.step(st, dr, dc, dirName(dr, dc)).state;
+    if (st.player.r !== pr || st.player.c !== pc) return false;
+    const res = L.step(st, e.dr, e.dc, dirName(e.dr, e.dc));
+    if (!res.moved) return false;
+    st = res.state;
+  }
+  if (L.BRIDES && L.BRIDES.length) {                 // cage open now — walk to the bride
+    const b = L.BRIDES[0]; const walk = walkPlayer(L, st, b.r, b.c);
+    if (walk) for (const [dr, dc] of walk) st = L.step(st, dr, dc, dirName(dr, dc)).state;
+  }
+  return L.isWon(st);
+}
+
+function gradeLevel(level) {
+  const { grid, boxes, stones, player, hasCage } = parseLevel(level);
+  grid._sig = 'grade:' + grid.wall.join('') + ':' + grid.warps.join(','); _bpdCache.clear();
+  grid.computeDead();
+  const goals = []; for (let i = 0; i < grid.N; i++) if (grid.goal[i]) goals.push(i);
+  const r = { name: level.name || 'Untitled', gifts: boxes.length, stones: stones.length, warps: grid.warps.length === 2 ? 'yes' : 'no', colors: grid.colors.filter((c) => c > 0).length };
+  if (goals.length === 0) { r.solvable = false; r.note = 'no hearts'; return r; }
+  if (!hasCage && boxes.length === 0) { r.solvable = false; r.note = 'no gifts, no cage'; return r; }
+  const graph = forwardGraph(grid, { boxes, stones, player }, makeGoal(grid, hasCage));
+  if (!graph.solvedKeys.length) { r.solvable = false; r.note = graph.truncated ? 'too big (search capped)' : 'no solution'; return r; }
+  r.solvable = true; r.pushes = graph.L;
+  const a = analyzeGraph(graph);
+  r.giftPushes = a.path.filter((e) => e.obj === 'g').length;
+  r.stonePushes = a.path.filter((e) => e.obj === 's').length;
+  r.returns = boxes.length ? a.minRuns - boxes.length : 0;
+  r.detour = (boxes.length === goals.length) ? r.giftPushes - assignmentLB(grid, boxes, goals) : null; // gift-centric; n/a when stones fill hearts
+  const tr = naiveTrap(grid, boxes, goals, stones);
+  r.trap = tr.trap; r.trapFail = tr.failFrac; r.trapHidden = tr.hiddenFrac;
+  r.distinctOptimal = a.distinct;
+  r.verified = gradeVerify(level, grid, a.path);
+  return r;
+}
+
+function gradeMode(file) {
+  const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const levels = Array.isArray(raw) ? raw : [raw];
+  console.log(`Grading ${levels.length} level(s) from ${file}\n`);
+  for (const lv of levels) {
+    const r = gradeLevel(lv);
+    if (!r.solvable) { console.log(`✗ ${r.name} — UNSOLVABLE (${r.note || ''})`); continue; }
+    const tags = [r.colors > 0 ? r.colors + ' colours' : '', r.stones ? r.stones + ' stones' : '', r.warps === 'yes' ? 'warp' : ''].filter(Boolean).join(', ') || 'neutral';
+    console.log(`${r.verified ? '✓' : '?'} ${r.name}  [${tags}]`);
+    console.log(`    pushes ${r.pushes} (gift ${r.giftPushes}, stone ${r.stonePushes})  returns ${r.returns}  detour ${r.detour == null ? 'n/a' : r.detour}  trap ${r.trap} (fail ${r.trapFail}, hidden ${r.trapHidden})  distinctOpt ${r.distinctOptimal}${r.verified ? '' : '  [UNVERIFIED]'}`);
+  }
+  console.log('\nreturns = gifts handled in multiple phases · detour = gift pushes beyond the straight assignment · trap = does the obvious plan brick · distinctOpt low = tight/designed');
 }
 
 function main() {
   const opts = parseArgs(process.argv);
+  if (opts.grade) { gradeMode(opts.grade); return; }
   const rng = makeRng(opts.seed);
   const LIGHTS = ['day', 'golden', 'evening'], WSTY = ['hedge', 'blossom', 'fence'];
   console.log(`Puzzle Forge — ${opts.count} room/heart layouts, ${opts.boxes} gifts, ${opts.w}x${opts.h}, ${opts.colors > 0 ? opts.colors + ' colours' : 'neutral'}${opts.warps ? ', warps' : ''}, seed ${opts.seed}`);
