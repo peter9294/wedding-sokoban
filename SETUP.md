@@ -60,7 +60,8 @@ That's it — no more questions, no server to run.
 
 If it doesn't show up, check, in order:
 - You used a **personal Gmail** for the Apps Script (not a work account).
-- `Self-test submission: PASSED` appeared in the script log. If it said FAILED, re-run `setup` and read the warning.
+- The `entry.*` values in your config aren't blank. If `setup.gs` printed blank entries or "could not read some entry IDs", run **`apps-script/fix-entries.gs`** — it reads them from your existing form (no need to recreate the form or sheet).
+- `Self-test submission: PASSED` appeared in the script log. If it said FAILED but the entries are now filled in, confirm the form is on a personal Gmail and accepting responses.
 - In Google Drive, the **responses spreadsheet is shared "Anyone with the link → Viewer"** (the script tries to set this; some accounts need you to do it by hand).
 - `config.js` `actionUrl` ends in **`/formResponse`** and every `entry.*` value is filled in.
 - Your test name isn't in `leaderboard.ignoreNames` (defaults hide `test`/`tester`).

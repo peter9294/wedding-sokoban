@@ -54,12 +54,8 @@ function setup() {
   // --- 3. Derive the URLs + entry IDs the game needs ----------------------
   var viewUrl = form.getPublishedUrl();                 // .../viewform
   var actionUrl = viewUrl.replace(/viewform.*$/, 'formResponse');
-  var entries = {
-    name: entryId(form, qName),
-    solved: entryId(form, qSolved),
-    stage: entryId(form, qStage),
-    session: entryId(form, qSession)
-  };
+  var e = resolveEntries(form); // fresh item refs -> entry IDs, keyed by question title
+  var entries = { name: e.Name || '', solved: e.Solved || '', stage: e.Stage || '', session: e.Session || '' };
   var readUrl = 'https://docs.google.com/spreadsheets/d/' + ss.getId() +
     '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName) + '&headers=1';
 
@@ -95,13 +91,27 @@ function setup() {
 
 function tryDo(fn) { try { fn(); } catch (e) { /* not supported on this account — ignore */ } }
 
-function entryId(form, item) {
+// Read entry IDs robustly: re-fetch items FRESH (refs captured before setDestination
+// can go stale), read all IDs from one prefilled URL, then fall back to the form's
+// published HTML for any still missing. Returns { <title>: 'entry.N' }.
+function resolveEntries(form) {
+  var items = form.getItems(FormApp.ItemType.TEXT);
+  var out = {};
   try {
-    var resp = form.createResponse().withItemResponse(item.asTextItem().createResponse('PROBE'));
+    var resp = form.createResponse();
+    items.forEach(function (it, i) { resp = resp.withItemResponse(it.asTextItem().createResponse('ZZ' + i + 'ZZ')); });
     var url = resp.toPrefilledUrl();
-    var m = url.match(/entry\.(\d+)=PROBE/);
-    return m ? ('entry.' + m[1]) : '';
-  } catch (e) { return ''; }
+    items.forEach(function (it, i) { var m = url.match(new RegExp('entry\\.(\\d+)=ZZ' + i + 'ZZ')); if (m) out[it.getTitle()] = 'entry.' + m[1]; });
+  } catch (e) {}
+  if (items.some(function (it) { return !out[it.getTitle()]; })) {
+    try {
+      var html = UrlFetchApp.fetch(form.getPublishedUrl(), { muteHttpExceptions: true }).getContentText();
+      var re = /"([^"]+)",(?:null|"[^"]*"),\d+,\[\[(\d+)/g, m, byTitle = {};
+      while ((m = re.exec(html))) { byTitle[m[1]] = 'entry.' + m[2]; }
+      items.forEach(function (it) { if (!out[it.getTitle()] && byTitle[it.getTitle()]) out[it.getTitle()] = byTitle[it.getTitle()]; });
+    } catch (e) {}
+  }
+  return out;
 }
 
 function waitForResponseSheet(ss) {
