@@ -69,7 +69,7 @@ body { overflow: hidden; overscroll-behavior: none; }
 .hud .stage { font-family: var(--title); font-weight: 700; font-size: 16px; }
 .hud .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 .hud .count { text-align: right; }
-.hud .count .lbl { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--wine); }
+.hud .count .lbl { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--wine); }
 .hud .count .val { font-family: var(--title); font-weight: 700; font-size: 15px; }
 
 .board-wrap {
