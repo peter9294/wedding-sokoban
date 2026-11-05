@@ -5,9 +5,11 @@
 // ============================================================================
 
 export const CONFIG = {
-  // Cosmetic ---------------------------------------------------------------
-  // Shown on the countdown in the play HUD. Use the real wedding date/time.
-  weddingDate: '2026-12-31T16:00',       // ISO local time, e.g. '2026-12-31T16:00'
+  // Deadline ---------------------------------------------------------------
+  // The game's end time. Drives the "Ends in" countdown AND the cutoff: after this
+  // moment the game STOPS submitting scores (still fully playable) and the leaderboard
+  // freezes. ISO local time, in the players' timezone.
+  weddingDate: '2026-11-08T21:00',       // Nov 8, 9:00 PM
 
   // Initials shown above the characters (the couple). One letter each.
   couple: { bride: 'A', groom: 'P' },    // Anna / Peter
@@ -43,8 +45,7 @@ export const CONFIG = {
   leaderboard: {
     pollMs: 15000,     // how often the leaderboard re-fetches (ms)
     top: 100,          // max rows to display
-    // Optional: ignore scores submitted after this moment (keeps the podium
-    // stable once the party is over). '' = no cutoff.
+    // Ignore scores submitted after this moment. '' = use weddingDate (the deadline above).
     cutoff: '',
     // Names to hide from the board (your test runs, etc.). Case-insensitive.
     ignoreNames: ['test', 'tester']

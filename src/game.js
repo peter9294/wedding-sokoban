@@ -1,11 +1,11 @@
 // Something Pushed — game controller.
 // Screens: name -> tutorial -> play -> (win overlay) -> next stage -> all-clear.
-import { CONFIG, CAN_SUBMIT } from '../config.js';
+import { CONFIG } from '../config.js';
 import { Level, levelSignature } from './engine.js';
 import { buildSprites } from './sprites.js';
 import { Renderer } from './render.js';
 import { loadProgress, saveProgress, clampName, newSessionId } from './storage.js';
-import { submitScore } from './score.js';
+import { submitScore, scoringOpen } from './score.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -136,9 +136,9 @@ function handleWin() {
   if (!progress.cleared.includes(id)) progress.cleared.push(id);
   const solved = progress.cleared.length;
 
-  // Submit the score — ONLY here (on a win), and only once per distinct stage.
-  // sentStages is persisted in localStorage, so a replay or reload never resubmits.
-  if (CAN_SUBMIT && !progress.sentStages.includes(id)) {
+  // Submit the score — ONLY here (on a win), only once per distinct stage, and only
+  // before the deadline. sentStages (localStorage) stops any replay/reload resubmit.
+  if (scoringOpen() && !progress.sentStages.includes(id)) {
     progress.sentStages.push(id);
     submitScore({ name: progress.name, solved, stage: stageIdx + 1, session: progress.sessionId });
   }

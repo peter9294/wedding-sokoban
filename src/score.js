@@ -8,8 +8,17 @@ import { normName } from './storage.js';
 
 // Fire-and-forget: no-cors responses are opaque (we can't read success), and
 // keepalive lets the POST complete even if the tab closes right after the win.
-export async function submitScore(record) {
+// Scoring is open only before the deadline (CONFIG.weddingDate). After it the game
+// stays fully playable but submits nothing, so the leaderboard freezes.
+export function scoringOpen() {
   if (!CAN_SUBMIT) return false;
+  const d = new Date(CONFIG.weddingDate);
+  if (isNaN(d.getTime())) return true; // no valid deadline -> scoring stays open
+  return Date.now() < d.getTime();
+}
+
+export async function submitScore(record) {
+  if (!scoringOpen()) return false;
   const e = CONFIG.form.entries;
   const body = new URLSearchParams();
   if (e.name) body.append(e.name, record.name);
@@ -80,7 +89,9 @@ export async function fetchSheetRows() {
 // name). Tiebreak = who reached that count first (earliest arrival row).
 export function buildLeaderboard(rows) {
   const ignore = new Set((CONFIG.leaderboard.ignoreNames || []).map((n) => normName(n)));
-  const cutoff = CONFIG.leaderboard.cutoff ? new Date(CONFIG.leaderboard.cutoff) : null;
+  const cutoffStr = CONFIG.leaderboard.cutoff || CONFIG.weddingDate; // cutoff defaults to the deadline
+  const cutoffDate = cutoffStr ? new Date(cutoffStr) : null;
+  const cutoff = cutoffDate && !isNaN(cutoffDate.getTime()) ? cutoffDate : null;
 
   const byKey = new Map();
   for (const r of rows) {
