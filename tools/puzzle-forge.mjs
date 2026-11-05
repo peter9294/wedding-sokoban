@@ -38,12 +38,13 @@
 //
 //  Output is the pure pushing puzzle in the project's level format (floor+map),
 //  each annotated with its metrics + a solution VERIFIED against the real engine
-//  (src/engine.js). Wedding framing (bride cage, colors, names) is left to the
-//  designers. Ranking is by solving structure, never moves/time.
+//  (src/engine.js), with the bride-cage finish auto-added. Colour-matched gifts
+//  and hearts are supported (--colors); lighting and names stay the designers'.
+//  Ranking is by solving structure, never moves/time.
 //
 //  Usage:
 //    node tools/puzzle-forge.mjs [--count 200] [--boxes 3] [--w 6] [--h 6]
-//                                [--keep 8] [--seed 1] [--out FILE]
+//                                [--keep 8] [--seed 1] [--out FILE] [--colors 0]
 //                                [--minpush 6] [--maxpush 22]
 // =============================================================================
 
@@ -70,6 +71,14 @@ const shuffle = (rng, arr) => { const a = arr.slice(); for (let i = a.length - 1
 const DIRS = [[-1, 0, 'up'], [1, 0, 'down'], [0, -1, 'left'], [0, 1, 'right']];
 const dirName = (dr, dc) => (dr === -1 ? 'up' : dr === 1 ? 'down' : dc === -1 ? 'left' : 'right');
 
+// Boxes carry a colour. We pack (cell, colour) into one int so state keys stay
+// cheap: box = pos*BM + colour (colour 0 = neutral gift '$'). POS/COL unpack it.
+const BM = 100;
+const POS = (b) => (b / BM) | 0;
+const COL = (b) => b % BM;
+const MK = (p, c) => p * BM + c;
+const occ = (boxes) => { const s = new Set(); for (const b of boxes) s.add(POS(b)); return s; };
+
 // =============================================================================
 //  Grid model
 // =============================================================================
@@ -78,7 +87,10 @@ class Grid {
     this.W = W; this.H = H; this.N = W * H;
     this.wall = new Uint8Array(this.N);
     this.goal = new Uint8Array(this.N);
+    this.gcol = new Int8Array(this.N);     // heart colour (0 = neutral 'x', 1..9 = digit)
     this.dead = new Uint8Array(this.N);
+    this.colors = [0];
+    this.distByColor = new Map();          // colour -> box-push-distance-to-nearest-matching-heart table
     this.boxGoalDist = new Int32Array(this.N);
   }
   rc(i) { return [(i / this.W) | 0, i % this.W]; }
@@ -101,55 +113,72 @@ class Grid {
     return { seen, canon: min };
   }
 
-  // simple-deadlock squares + box->goal pull-distance table
+  // For every gift colour present, a box-push-distance table to the nearest
+  // heart that colour can legally fill. A cell dead for ITS colour can never be
+  // solved from; a cell dead for EVERY colour is a universal dead square.
   computeDead() {
-    this.boxGoalDist.fill(INF);
-    const q = [];
-    for (let i = 0; i < this.N; i++) if (this.goal[i] && !this.wall[i]) { this.boxGoalDist[i] = 0; q.push(i); }
-    for (let h = 0; h < q.length; h++) {
-      const cur = q[h], d = this.boxGoalDist[cur];
-      for (const [dr, dc] of DIRS) {
-        const from = this.step(cur, -dr, -dc), push = this.step2(cur, -dr, -dc);
-        if (from < 0 || push < 0 || this.wall[from] || this.wall[push]) continue;
-        if (this.boxGoalDist[from] > d + 1) { this.boxGoalDist[from] = d + 1; q.push(from); }
+    const cset = new Set();
+    for (let i = 0; i < this.N; i++) if (this.goal[i]) cset.add(this.gcol[i]);
+    this.colors = cset.size ? [...cset] : [0];
+    this.distByColor = new Map();
+    for (const c of this.colors) {
+      const d = new Int32Array(this.N).fill(INF); const q = [];
+      for (let i = 0; i < this.N; i++) {
+        if (!this.goal[i]) continue;
+        if (this.gcol[i] === 0 || this.gcol[i] === c) { d[i] = 0; q.push(i); } // neutral heart fills for any colour
       }
+      for (let h = 0; h < q.length; h++) {
+        const cur = q[h], dc = d[cur];
+        for (const [dr, dcc] of DIRS) {
+          const from = this.step(cur, -dr, -dcc), push = this.step2(cur, -dr, -dcc);
+          if (from < 0 || push < 0 || this.wall[from] || this.wall[push]) continue;
+          if (d[from] > dc + 1) { d[from] = dc + 1; q.push(from); }
+        }
+      }
+      this.distByColor.set(c, d);
     }
-    for (let i = 0; i < this.N; i++) this.dead[i] = (!this.wall[i] && this.boxGoalDist[i] >= INF) ? 1 : 0;
+    for (let i = 0; i < this.N; i++) {
+      let allDead = true;
+      for (const c of this.colors) if (this.distByColor.get(c)[i] < INF) { allDead = false; break; }
+      this.dead[i] = (!this.wall[i] && allDead) ? 1 : 0;
+    }
+    this.boxGoalDist = this.distByColor.get(0) || this.distByColor.get(this.colors[0]);
   }
-
-  frozen(i, boxSet, asWall) {
-    const blk = (n) => n < 0 || this.wall[n] || asWall.has(n) || (boxSet.has(n) && this._frozenRec(n, boxSet, asWall));
-    const axis = (d) => {
-      const a = this.step(i, d[0][0], d[0][1]), b = this.step(i, d[1][0], d[1][1]);
-      if (blk(a) || blk(b)) return true;
-      if (a >= 0 && b >= 0 && this.dead[a] && this.dead[b]) return true;
-      return false;
-    };
-    return axis([[0, -1], [0, 1]]) && axis([[-1, 0], [1, 0]]);
-  }
-  _frozenRec(i, boxSet, asWall) { if (asWall.has(i)) return true; asWall.add(i); const f = this.frozen(i, boxSet, asWall); asWall.delete(i); return f; }
-  freezeDead(movedBox, boxSet) { return this.frozen(movedBox, boxSet, new Set([movedBox])) && !this.goal[movedBox]; }
 }
 
 const keyOf = (boxes, player) => boxes.join(',') + '|' + player;
-const isSolved = (grid, boxes) => boxes.every((b) => grid.goal[b]);
+// A gift of colour `col` is placed on `pos` iff it's a heart and colours match
+// (a neutral heart, colour 0, accepts any gift — mirrors the engine).
+const placed = (grid, pos, col) => !!grid.goal[pos] && (grid.gcol[pos] === 0 || col === grid.gcol[pos]);
+const isSolved = (grid, boxes) => boxes.every((b) => placed(grid, POS(b), COL(b)));
+
+// Freeze deadlock (geometry only): a box wedged immovable on both axes and not
+// on a matching heart. Conservative — only flags genuinely stuck boxes.
+function frozenGeom(grid, cell, cells, asWall) {
+  const blk = (n) => n < 0 || grid.wall[n] || asWall.has(n) || (cells.has(n) && frozenRec(grid, n, cells, asWall));
+  const axis = (d) => blk(grid.step(cell, d[0][0], d[0][1])) || blk(grid.step(cell, d[1][0], d[1][1]));
+  return axis([[0, -1], [0, 1]]) && axis([[-1, 0], [1, 0]]);
+}
+function frozenRec(grid, cell, cells, asWall) { if (asWall.has(cell)) return true; asWall.add(cell); const f = frozenGeom(grid, cell, cells, asWall); asWall.delete(cell); return f; }
+function freezeDead(grid, cell, col, nb) { return frozenGeom(grid, cell, occ(nb), new Set([cell])) && !placed(grid, cell, col); }
 
 // forward (push) successors, with dead-square + freeze pruning — the "plausible"
-// moves a player sees.
+// moves a player sees. Colour-aware: a gift can't fill a heart of another colour.
 function forwardSucc(grid, boxes, player) {
-  const boxSet = new Set(boxes);
+  const boxSet = occ(boxes);
   const { seen: region } = grid.reach(player, boxSet);
   const out = [];
   for (let k = 0; k < boxes.length; k++) {
-    const bi = boxes[k];
+    const bp = POS(boxes[k]), bc = COL(boxes[k]);
+    const dcol = grid.distByColor.get(bc);
     for (const [dr, dc] of DIRS) {
-      const to = grid.step(bi, dr, dc), pusher = grid.step(bi, -dr, -dc);
+      const to = grid.step(bp, dr, dc), pusher = grid.step(bp, -dr, -dc);
       if (to < 0 || pusher < 0) continue;
-      if (grid.wall[to] || boxSet.has(to) || grid.dead[to]) continue;
+      if (grid.wall[to] || boxSet.has(to) || (dcol && dcol[to] >= INF)) continue;
       if (grid.wall[pusher] || boxSet.has(pusher) || !region[pusher]) continue;
-      const nb = boxes.slice(); nb[k] = to; nb.sort((a, b) => a - b);
-      if (grid.freezeDead(to, new Set(nb))) continue;
-      const { canon } = grid.reach(bi, new Set(nb));
+      const nb = boxes.slice(); nb[k] = MK(to, bc); nb.sort((a, b) => a - b);
+      if (freezeDead(grid, to, bc, nb)) continue;
+      const { canon } = grid.reach(bp, occ(nb));
       out.push({ boxes: nb, player: canon });
     }
   }
@@ -164,40 +193,41 @@ function enumerate(grid, cap = 120000) {
   const goals = [];
   for (let i = 0; i < grid.N; i++) if (grid.goal[i]) goals.push(i);
   goals.sort((a, b) => a - b);
-  // canonical solved player = min reachable free cell with all boxes on goals
+  // solved = each gift sits on a heart it matches (gift colour = heart colour).
+  const solvedBoxes = goals.map((g) => MK(g, grid.gcol[g]));
   const boxSet0 = new Set(goals);
   let solvedPlayer = -1;
   for (let i = 0; i < grid.N; i++) { if (!grid.wall[i] && !boxSet0.has(i)) { solvedPlayer = grid.reach(i, boxSet0).canon; break; } }
   if (solvedPlayer < 0) return null;
-  const solvedKey = keyOf(goals, solvedPlayer);
+  const solvedKey = keyOf(solvedBoxes, solvedPlayer);
   const dist = new Map([[solvedKey, 0]]);
-  const node = new Map([[solvedKey, { boxes: goals, player: solvedPlayer }]]);
-  const fwd = new Map();                         // key -> [{to, from(cell), dir}]  (optimal pushes)
+  const node = new Map([[solvedKey, { boxes: solvedBoxes, player: solvedPlayer }]]);
+  const fwd = new Map();                         // key -> [{toKey, from(cell), to(cell), dir}]  (optimal pushes)
   const q = [solvedKey];
   let truncated = false;
 
   for (let h = 0; h < q.length; h++) {
     if (node.size > cap) { truncated = true; break; }
     const sKey = q[h]; const { boxes, player } = node.get(sKey); const dS = dist.get(sKey);
-    const boxSet = new Set(boxes);
+    const boxSet = occ(boxes);
     const { seen: region } = grid.reach(player, boxSet);
-    // generate pull-predecessors P (one push further from solved)
+    // generate pull-predecessors P (one push further from solved); colour rides along
     for (let k = 0; k < boxes.length; k++) {
-      const bi = boxes[k];
+      const bp = POS(boxes[k]), bc = COL(boxes[k]);
       for (const [dr, dc] of DIRS) {
-        const stand = grid.step(bi, dr, dc);       // Bx+g : player stands here to pull
-        const back = grid.step2(bi, dr, dc);       // Bx+2g: player retreats here
+        const stand = grid.step(bp, dr, dc);       // Bx+g : player stands here to pull
+        const back = grid.step2(bp, dr, dc);       // Bx+2g: player retreats here
         if (stand < 0 || back < 0) continue;
         if (grid.wall[stand] || boxSet.has(stand) || !region[stand]) continue;
         if (grid.wall[back] || boxSet.has(back)) continue;
-        const nb = boxes.slice(); nb[k] = stand; nb.sort((a, b) => a - b);
-        const { canon } = grid.reach(back, new Set(nb));
+        const nb = boxes.slice(); nb[k] = MK(stand, bc); nb.sort((a, b) => a - b);
+        const { canon } = grid.reach(back, occ(nb));
         const pKey = keyOf(nb, canon);
         const dP = dS + 1;
         if (!dist.has(pKey)) { dist.set(pKey, dP); node.set(pKey, { boxes: nb, player: canon }); q.push(pKey); }
-        if (dist.get(pKey) === dP) { // optimal forward edge P -> S : box at `stand` pushed (dir -g) to `bi`
+        if (dist.get(pKey) === dP) { // optimal forward edge P -> S : box at `stand` pushed (dir -g) to `bp`
           if (!fwd.has(pKey)) fwd.set(pKey, []);
-          fwd.get(pKey).push({ toKey: sKey, from: stand, to: bi, dir: dirName(-dr, -dc) });
+          fwd.get(pKey).push({ toKey: sKey, from: stand, to: bp, dir: dirName(-dr, -dc) });
         }
       }
     }
@@ -214,8 +244,8 @@ function enumerate(grid, cap = 120000) {
 function assignmentLB(grid, boxes, goals) {
   const n = boxes.length;
   const cost = boxes.map((b) => goals.map((g) => {
-    // pushes to move a box from b to g, ignoring other boxes: BFS in box space
-    return boxPushDist(grid, b, g);
+    // pushes to move this gift to heart g, ignoring other boxes; INF if colours clash
+    return placed(grid, g, COL(b)) ? boxPushDist(grid, POS(b), g) : INF;
   }));
   let best = INF;
   const perm = (used, i, acc) => {
@@ -311,9 +341,9 @@ function decisionProfile(grid, graph, startKey) {
 function cellsUsed(grid, graph, startKey) {
   const { path, } = returnsAndPath(graph, startKey);
   const start = graph.node.get(startKey);
-  const touched = new Set([...start.boxes, start.player]);
-  let boxes = start.boxes.slice();
-  for (const p of path) { touched.add(p.from); touched.add(p.to); const i = boxes.indexOf(p.from); if (i >= 0) boxes[i] = p.to; }
+  const touched = new Set([...start.boxes.map(POS), start.player]);
+  let cells = start.boxes.map(POS);
+  for (const p of path) { touched.add(p.from); touched.add(p.to); const i = cells.indexOf(p.from); if (i >= 0) cells[i] = p.to; }
   let floor = 0; for (let i = 0; i < grid.N; i++) if (!grid.wall[i]) floor++;
   return touched.size / floor;
 }
@@ -328,25 +358,24 @@ function naiveTrap(grid, startBoxes, goals) {
   let failN = 0, depthSum = 0, hidden = 0, total = 0;
   for (const order of orderings) {
     total++;
-    let boxes = startBoxes.slice();
+    let cells = startBoxes.map(POS); const cols = startBoxes.map(COL);
     const freeGoals = new Set(goals);
-    // boxes already on a goal: lock them
-    boxes.forEach((b) => { if (freeGoals.has(b)) freeGoals.delete(b); });
+    // gifts already on a matching heart: lock them
+    cells.forEach((p, j) => { if (freeGoals.has(p) && placed(grid, p, cols[j])) freeGoals.delete(p); });
     let planned = 0, done = 0, failedAt = -1, hiddenFail = false;
     for (const oi of order) {
-      if (freeGoals.has(boxes[oi])) { freeGoals.delete(boxes[oi]); continue; }
-      // nearest free goal for this box
+      if (freeGoals.has(cells[oi]) && placed(grid, cells[oi], cols[oi])) { freeGoals.delete(cells[oi]); continue; }
+      // nearest free COLOUR-COMPATIBLE heart for this gift
       let tgt = -1, bd = INF;
-      for (const g of freeGoals) { const d = boxPushDist(grid, boxes[oi], g); if (d < bd) { bd = d; tgt = g; } }
+      for (const g of freeGoals) { if (!placed(grid, g, cols[oi])) continue; const d = boxPushDist(grid, cells[oi], g); if (d < bd) { bd = d; tgt = g; } }
       if (tgt < 0 || bd >= INF) { failedAt = done; hiddenFail = false; break; }
-      // push it there one cell at a time, treating other current boxes as walls
-      const others = new Set(boxes.filter((_, j) => j !== oi));
-      const route = boxRoute(grid, boxes[oi], tgt, others);
+      // push it there one cell at a time, treating other current gifts as walls
+      const others = new Set(cells.filter((_, j) => j !== oi));
+      const route = boxRoute(grid, cells[oi], tgt, others);
       planned += bd;
       if (!route) { failedAt = done; hiddenFail = others.size > 0 /*blocked by a gift = hidden*/; break; }
-      // check freeze at the end
       done += route.length;
-      boxes[oi] = tgt; freeGoals.delete(tgt);
+      cells[oi] = tgt; freeGoals.delete(tgt);
     }
     if (failedAt >= 0) {
       failN++;
@@ -446,36 +475,51 @@ const mirror = (rows) => rows.map((r) => r.split('').reverse().join(''));
 //  Emit / render / engine verification
 // =============================================================================
 function toLevel(grid, boxes, player, name, lighting, wallStyle) {
-  const boxSet = new Set(boxes), floor = [], map = [];
+  const boxCol = new Map(); for (const b of boxes) boxCol.set(POS(b), COL(b));
+  const floor = [], map = [];
   for (let r = 0; r < grid.H; r++) {
     let fr = '', mr = '';
     for (let c = 0; c < grid.W; c++) {
       const i = grid.idx(r, c);
-      fr += grid.goal[i] ? 'x' : '.';
-      mr += grid.wall[i] ? '#' : i === player ? '@' : boxSet.has(i) ? '$' : '.';
+      fr += grid.goal[i] ? (grid.gcol[i] === 0 ? 'x' : String(grid.gcol[i])) : '.';
+      if (grid.wall[i]) mr += '#';
+      else if (i === player) mr += '@';
+      else if (boxCol.has(i)) { const col = boxCol.get(i); mr += col === 0 ? '$' : String(col); }
+      else mr += '.';
     }
     floor.push(fr); map.push(mr);
   }
   return { name, lighting, wallStyle, floor, map };
 }
 function ascii(grid, boxes, player) {
-  const boxSet = new Set(boxes); let s = '';
-  for (let r = 0; r < grid.H; r++) { for (let c = 0; c < grid.W; c++) { const i = grid.idx(r, c); s += grid.wall[i] ? '#' : i === player ? (grid.goal[i] ? '+' : '@') : boxSet.has(i) ? (grid.goal[i] ? '*' : '$') : grid.goal[i] ? 'x' : ' '; } s += '\n'; } return s;
+  const boxCol = new Map(); for (const b of boxes) boxCol.set(POS(b), COL(b)); let s = '';
+  for (let r = 0; r < grid.H; r++) {
+    for (let c = 0; c < grid.W; c++) {
+      const i = grid.idx(r, c);
+      if (grid.wall[i]) s += '#';
+      else if (i === player) s += grid.goal[i] ? '+' : '@';
+      else if (boxCol.has(i)) { const col = boxCol.get(i); s += col === 0 ? (grid.goal[i] ? '*' : '$') : String(col); }
+      else if (grid.goal[i]) s += grid.gcol[i] === 0 ? 'x' : String(grid.gcol[i]);
+      else s += ' ';
+    }
+    s += '\n';
+  }
+  return s;
 }
 // relocate player to a reachable cell far from the first push (so start isn't a tell)
 function relocatePlayer(grid, boxes, player, path) {
   if (!path.length) return player;
-  const first = path[0].from; const { seen } = grid.reach(player, new Set(boxes));
+  const first = path[0].from; const { seen } = grid.reach(player, occ(boxes));
   let best = player, bd = -1;
   for (let i = 0; i < grid.N; i++) if (seen[i]) { const [r1, c1] = grid.rc(i), [r2, c2] = grid.rc(first); const d = Math.abs(r1 - r2) + Math.abs(c1 - c2); if (d > bd) { bd = d; best = i; } }
   return best;
 }
 function verifyWithEngine(grid, boxes, player, path) {
-  const moves = []; let curBoxes = boxes.slice(), curPlayer = player;
+  const moves = []; let curCells = boxes.map(POS), curPlayer = player;
   for (const push of path) {
     const [fr, fc] = grid.rc(push.from), [tr, tc] = grid.rc(push.to);
     const ddr = tr - fr, ddc = tc - fc; const pusher = grid.idx(fr - ddr, fc - ddc);
-    const boxSet = new Set(curBoxes), prev = new Map(), seen = new Set([curPlayer]), q = [curPlayer];
+    const boxSet = new Set(curCells), prev = new Map(), seen = new Set([curPlayer]), q = [curPlayer];
     let ok = curPlayer === pusher;
     for (let h = 0; h < q.length && !ok; h++) for (const [mdr, mdc] of DIRS) {
       const n = grid.step(q[h], mdr, mdc);
@@ -486,7 +530,7 @@ function verifyWithEngine(grid, boxes, player, path) {
     const walk = []; let nd = pusher; while (nd !== curPlayer) { const [p, mdr, mdc] = prev.get(nd); walk.push([mdr, mdc]); nd = p; } walk.reverse();
     for (const m of walk) moves.push(m);
     moves.push([ddr, ddc]);
-    curBoxes = curBoxes.map((b) => (b === push.from ? push.to : b)); curPlayer = push.from;
+    curCells = curCells.map((b) => (b === push.from ? push.to : b)); curPlayer = push.from;
   }
   const L = new Level(toLevel(grid, boxes, player, 'v', 'day', 'hedge'));
   let st = L.fresh();
@@ -564,8 +608,8 @@ function makeGridFromTemplate(iw, ih, tmpl) {
 //  Driver
 // =============================================================================
 function parseArgs(argv) {
-  const o = { count: 200, boxes: 3, w: 6, h: 6, keep: 8, seed: 1, out: path.join(__dirname, 'puzzle-forge.out.json'), minpush: 6, maxpush: 22 };
-  for (let i = 2; i < argv.length; i++) { const a = argv[i], nx = () => argv[++i]; const m = { '--count': 'count', '--boxes': 'boxes', '--w': 'w', '--h': 'h', '--keep': 'keep', '--seed': 'seed', '--minpush': 'minpush', '--maxpush': 'maxpush' }; if (a === '--out') o.out = nx(); else if (m[a]) o[m[a]] = +nx(); }
+  const o = { count: 200, boxes: 3, w: 6, h: 6, keep: 8, seed: 1, out: path.join(__dirname, 'puzzle-forge.out.json'), minpush: 6, maxpush: 22, colors: 0 };
+  for (let i = 2; i < argv.length; i++) { const a = argv[i], nx = () => argv[++i]; const m = { '--count': 'count', '--boxes': 'boxes', '--w': 'w', '--h': 'h', '--keep': 'keep', '--seed': 'seed', '--minpush': 'minpush', '--maxpush': 'maxpush', '--colors': 'colors' }; if (a === '--out') o.out = nx(); else if (m[a]) o[m[a]] = +nx(); }
   return o;
 }
 
@@ -573,7 +617,7 @@ function main() {
   const opts = parseArgs(process.argv);
   const rng = makeRng(opts.seed);
   const LIGHTS = ['day', 'golden', 'evening'], WSTY = ['hedge', 'blossom', 'fence'];
-  console.log(`Puzzle Forge — ${opts.count} room/heart layouts, ${opts.boxes} gifts, ${opts.w}x${opts.h}, seed ${opts.seed}`);
+  console.log(`Puzzle Forge — ${opts.count} room/heart layouts, ${opts.boxes} gifts, ${opts.w}x${opts.h}, ${opts.colors > 0 ? opts.colors + ' colours' : 'neutral'}, seed ${opts.seed}`);
   const t0 = Date.now();
   const tmpls = templates(opts.w, opts.h);
   const kept = []; const seenSig = new Set();
@@ -586,10 +630,11 @@ function main() {
     grid._sig = n + ':' + grid.wall.join(''); _bpdCache.clear();
     const free = []; for (let i = 0; i < grid.N; i++) if (!grid.wall[i]) free.push(i);
     if (free.length < opts.boxes + 2 || free.length > 34) continue;
-    // random heart placement
+    // random heart placement (+ colours round-robin so each colour's gift/heart counts match)
     const goals = shuffle(rng, free).slice(0, opts.boxes);
-    for (let i = 0; i < grid.N; i++) grid.goal[i] = 0;
+    for (let i = 0; i < grid.N; i++) { grid.goal[i] = 0; grid.gcol[i] = 0; }
     for (const gi of goals) grid.goal[gi] = 1;
+    if (opts.colors > 0) { shuffle(rng, goals).forEach((g, idx) => grid.gcol[g] = (idx % opts.colors) + 1); }
     grid.computeDead();
     if (goals.some((gi) => grid.dead[gi])) continue;
 

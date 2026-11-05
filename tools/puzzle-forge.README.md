@@ -73,6 +73,7 @@ hand would never feel it; the solver does.
 ```
 --count N    room/heart layouts to try      (default 200)
 --boxes N    gifts per puzzle, 2–4           (default 3)
+--colors N   colour-matched gifts/hearts     (default 0 = neutral; 2 = blue+lavender)
 --w N --h N  interior room size              (default 6 x 6; use 5x5 / 5x6 so
                                               floor cells stay ≤ 30)
 --keep N     how many top puzzles to emit    (default 8)
@@ -86,6 +87,16 @@ Sweet spot for this audience (wedding guests, phones, ~2 min, unlimited undo):
 **2–3 gifts, 5×5 or 5×6, ≤ 30 cells, one idea per level.** 4 gifts mostly get
 rejected as "grind" — many small fiddly choices, which plays as a chore, not a
 puzzle. That's intentional.
+
+## Colour matching (`--colors`)
+
+With `--colors 2`, gifts and hearts come in two colours (blue = `1`, lavender =
+`2` in the emitted `floor`/`map`); a blue gift can only satisfy a blue heart. The
+gifts split evenly across colours and the solved board matches like to like. This
+*sharpens* the grading rather than complicating it: a gift can no longer slide to
+the nearest heart, so detour and returns climb — a 4-gift / 2-colour batch
+routinely hits returns 5–6 and detour 8–10 where neutral tops out around 3 and 6.
+Still engine-verified end to end. (Rolling stones and warp pads are next.)
 
 ## Honest limits
 
