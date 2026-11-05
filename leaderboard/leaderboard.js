@@ -75,6 +75,8 @@ document.addEventListener('visibilitychange', () => {
 if (!CAN_READ) {
   bodyEl.innerHTML = '<div class="lb-empty">The leaderboard isn’t connected yet.<br><br>Run the one-time setup (see <b>SETUP.md</b>) and paste the sheet URL into <b>config.js</b>.</div>';
   setStatus(false, 'Not configured');
+} else if (!document.hidden) {
+  poll();                      // fetch only while the leaderboard page is actually visible
 } else {
-  poll();
+  setStatus(false, 'Paused');  // opened in a background tab — wait until it's viewed (visibilitychange resumes)
 }
