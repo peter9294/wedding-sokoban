@@ -45,7 +45,7 @@
 //  Usage:
 //    node tools/puzzle-forge.mjs [--count 200] [--boxes 3] [--w 6] [--h 6]
 //                                [--keep 8] [--seed 1] [--out FILE] [--colors 0]
-//                                [--minpush 6] [--maxpush 22]
+//                                [--warps] [--minpush 6] [--maxpush 22]
 // =============================================================================
 
 import { Level } from '../src/engine.js';
@@ -85,6 +85,7 @@ const occ = (boxes) => { const s = new Set(); for (const b of boxes) s.add(POS(b
 class Grid {
   constructor(W, H) {
     this.W = W; this.H = H; this.N = W * H;
+    this.warps = [];                       // 0 or 2 warp-pad cells (player teleports between them)
     this.wall = new Uint8Array(this.N);
     this.goal = new Uint8Array(this.N);
     this.gcol = new Int8Array(this.N);     // heart colour (0 = neutral 'x', 1..9 = digit)
@@ -99,18 +100,20 @@ class Grid {
   step(i, dr, dc) { const r = (i / this.W) | 0, c = i % this.W, nr = r + dr, nc = c + dc; return this.inb(nr, nc) ? nr * this.W + nc : -1; }
   step2(i, dr, dc) { const a = this.step(i, dr, dc); return a < 0 ? -1 : this.step(a, dr, dc); }
 
+  // Player-reachable cells. Warp-aware: marking a warp pad also marks its pair
+  // (stepping onto a pad teleports the player to the other), so the two pads and
+  // their neighbourhoods form one connected region.
   reach(start, boxSet) {
-    const seen = new Uint8Array(this.N);
+    const seen = new Uint8Array(this.N); const q = []; let min = this.N;
+    const push = (n) => {
+      if (n < 0 || seen[n] || this.wall[n] || boxSet.has(n)) return;
+      seen[n] = 1; q.push(n); if (n < min) min = n;
+      if (this.warps.length === 2) { const wi = this.warps.indexOf(n); if (wi >= 0) push(this.warps[1 - wi]); }
+    };
     if (start < 0 || this.wall[start] || boxSet.has(start)) return { seen, canon: start };
-    const q = [start]; seen[start] = 1; let min = start;
-    for (let h = 0; h < q.length; h++) {
-      for (const [dr, dc] of DIRS) {
-        const n = this.step(q[h], dr, dc);
-        if (n < 0 || seen[n] || this.wall[n] || boxSet.has(n)) continue;
-        seen[n] = 1; q.push(n); if (n < min) min = n;
-      }
-    }
-    return { seen, canon: min };
+    push(start);
+    for (let h = 0; h < q.length; h++) for (const [dr, dc] of DIRS) push(this.step(q[h], dr, dc));
+    return { seen, canon: min === this.N ? start : min };
   }
 
   // For every gift colour present, a box-push-distance table to the nearest
@@ -481,7 +484,7 @@ function toLevel(grid, boxes, player, name, lighting, wallStyle) {
     let fr = '', mr = '';
     for (let c = 0; c < grid.W; c++) {
       const i = grid.idx(r, c);
-      fr += grid.goal[i] ? (grid.gcol[i] === 0 ? 'x' : String(grid.gcol[i])) : '.';
+      fr += grid.goal[i] ? (grid.gcol[i] === 0 ? 'x' : String(grid.gcol[i])) : (grid.warps.includes(i) ? 'o' : '.');
       if (grid.wall[i]) mr += '#';
       else if (i === player) mr += '@';
       else if (boxCol.has(i)) { const col = boxCol.get(i); mr += col === 0 ? '$' : String(col); }
@@ -500,6 +503,7 @@ function ascii(grid, boxes, player) {
       else if (i === player) s += grid.goal[i] ? '+' : '@';
       else if (boxCol.has(i)) { const col = boxCol.get(i); s += col === 0 ? (grid.goal[i] ? '*' : '$') : String(col); }
       else if (grid.goal[i]) s += grid.gcol[i] === 0 ? 'x' : String(grid.gcol[i]);
+      else if (grid.warps.includes(i)) s += 'o';
       else s += ' ';
     }
     s += '\n';
@@ -514,48 +518,51 @@ function relocatePlayer(grid, boxes, player, path) {
   for (let i = 0; i < grid.N; i++) if (seen[i]) { const [r1, c1] = grid.rc(i), [r2, c2] = grid.rc(first); const d = Math.abs(r1 - r2) + Math.abs(c1 - c2); if (d > bd) { bd = d; best = i; } }
   return best;
 }
+// Walk the player to (pr,pc) using the REAL engine for every step — so warps
+// (and, later, stones) resolve exactly as the game does. Never pushes a gift or
+// stone (those cells are skipped). Returns the unit-move list, or null.
+function walkPlayer(L, st, pr, pc) {
+  if (st.player.r === pr && st.player.c === pc) return [];
+  const key = (p) => p.r + ',' + p.c;
+  const seen = new Set([key(st.player)]); const q = [{ st, path: [] }];
+  for (let h = 0; h < q.length; h++) {
+    const cur = q[h];
+    for (const [dr, dc] of DIRS) {
+      const nr = cur.st.player.r + dr, nc = cur.st.player.c + dc;
+      if (cur.st.boxes.some((b) => b.r === nr && b.c === nc)) continue;          // don't shove a gift
+      if ((cur.st.stones || []).some((o) => o.r === nr && o.c === nc)) continue; // don't shove a stone
+      const res = L.step(cur.st, dr, dc, dirName(dr, dc));
+      if (!res.moved) continue;
+      const k = key(res.state.player);
+      if (seen.has(k)) continue; seen.add(k);
+      const npath = [...cur.path, [dr, dc]];
+      if (res.state.player.r === pr && res.state.player.c === pc) return npath;
+      q.push({ st: res.state, path: npath });
+    }
+  }
+  return null;
+}
+// Replay the push-path against the real engine, routing the player through it at
+// every step, and confirm it wins. Engine-truth, so it can never falsely pass.
 function verifyWithEngine(grid, boxes, player, path) {
-  const moves = []; let curCells = boxes.map(POS), curPlayer = player;
+  const L = new Level(toLevel(grid, boxes, player, 'v', 'day', 'hedge'));
+  let st = L.fresh(); const moves = [];
   for (const push of path) {
     const [fr, fc] = grid.rc(push.from), [tr, tc] = grid.rc(push.to);
-    const ddr = tr - fr, ddc = tc - fc; const pusher = grid.idx(fr - ddr, fc - ddc);
-    const boxSet = new Set(curCells), prev = new Map(), seen = new Set([curPlayer]), q = [curPlayer];
-    let ok = curPlayer === pusher;
-    for (let h = 0; h < q.length && !ok; h++) for (const [mdr, mdc] of DIRS) {
-      const n = grid.step(q[h], mdr, mdc);
-      if (n < 0 || seen.has(n) || grid.wall[n] || boxSet.has(n)) continue;
-      seen.add(n); prev.set(n, [q[h], mdr, mdc]); q.push(n); if (n === pusher) { ok = true; break; }
-    }
-    if (!ok) return { ok: false };
-    const walk = []; let nd = pusher; while (nd !== curPlayer) { const [p, mdr, mdc] = prev.get(nd); walk.push([mdr, mdc]); nd = p; } walk.reverse();
-    for (const m of walk) moves.push(m);
-    moves.push([ddr, ddc]);
-    curCells = curCells.map((b) => (b === push.from ? push.to : b)); curPlayer = push.from;
+    const ddr = tr - fr, ddc = tc - fc; const pr = fr - ddr, pc = fc - ddc;
+    const walk = walkPlayer(L, st, pr, pc);
+    if (!walk) return { ok: false };
+    for (const [dr, dc] of walk) { st = L.step(st, dr, dc, dirName(dr, dc)).state; moves.push([dr, dc]); }
+    if (st.player.r !== pr || st.player.c !== pc) return { ok: false };
+    const res = L.step(st, ddr, ddc, dirName(ddr, ddc));
+    if (!res.moved) return { ok: false };
+    st = res.state; moves.push([ddr, ddc]);
   }
-  const L = new Level(toLevel(grid, boxes, player, 'v', 'day', 'hedge'));
-  let st = L.fresh();
-  for (const [dr, dc] of moves) st = L.step(st, dr, dc, dirName(dr, dc)).state;
   return { ok: L.isWon(st), moveList: moves, moves: moves.length, pushes: path.length };
 }
 
 // ---- wedding wrap: add the bride-cage finish so the puzzle is drop-in ---------
 const setChar = (s, i, ch) => s.slice(0, i) + ch + s.slice(i + 1);
-function bfsToCell(L, st, target) {
-  const seen = new Set([st.player.r + ',' + st.player.c]);
-  const q = [{ p: st.player, path: [] }];
-  for (let h = 0; h < q.length; h++) {
-    const { p, path } = q[h];
-    if (p.r === target.r && p.c === target.c) return path;
-    for (const [dr, dc] of DIRS) {
-      const nr = p.r + dr, nc = p.c + dc;
-      if (L.solid(st, nr, nc)) continue;
-      if (st.boxes.some((b) => b.r === nr && b.c === nc)) continue;
-      const k = nr + ',' + nc; if (seen.has(k)) continue; seen.add(k);
-      q.push({ p: { r: nr, c: nc }, path: [...path, [dr, dc]] });
-    }
-  }
-  return null;
-}
 // Fill hearts (via pushMoves), then the cage opens and the groom walks onto the
 // bride. Returns a drop-in level verified to win under the real engine, or null.
 function wrapWedding(grid, boxes, player, pushMoves) {
@@ -572,7 +579,7 @@ function wrapWedding(grid, boxes, player, pushMoves) {
   const wrapped = { lighting: 'day', wallStyle: 'hedge', floor, map };
   const L = new Level(wrapped); let st = L.fresh();
   for (const [dr, dc] of pushMoves) st = L.step(st, dr, dc, dirName(dr, dc)).state;
-  const walk = bfsToCell(L, st, { r: H, c: C });
+  const walk = walkPlayer(L, st, H, C);
   if (!walk) return null;
   for (const [dr, dc] of walk) st = L.step(st, dr, dc, dirName(dr, dc)).state;
   if (!L.isWon(st)) return null;
@@ -608,8 +615,8 @@ function makeGridFromTemplate(iw, ih, tmpl) {
 //  Driver
 // =============================================================================
 function parseArgs(argv) {
-  const o = { count: 200, boxes: 3, w: 6, h: 6, keep: 8, seed: 1, out: path.join(__dirname, 'puzzle-forge.out.json'), minpush: 6, maxpush: 22, colors: 0 };
-  for (let i = 2; i < argv.length; i++) { const a = argv[i], nx = () => argv[++i]; const m = { '--count': 'count', '--boxes': 'boxes', '--w': 'w', '--h': 'h', '--keep': 'keep', '--seed': 'seed', '--minpush': 'minpush', '--maxpush': 'maxpush', '--colors': 'colors' }; if (a === '--out') o.out = nx(); else if (m[a]) o[m[a]] = +nx(); }
+  const o = { count: 200, boxes: 3, w: 6, h: 6, keep: 8, seed: 1, out: path.join(__dirname, 'puzzle-forge.out.json'), minpush: 6, maxpush: 22, colors: 0, warps: false };
+  for (let i = 2; i < argv.length; i++) { const a = argv[i], nx = () => argv[++i]; const m = { '--count': 'count', '--boxes': 'boxes', '--w': 'w', '--h': 'h', '--keep': 'keep', '--seed': 'seed', '--minpush': 'minpush', '--maxpush': 'maxpush', '--colors': 'colors' }; if (a === '--out') o.out = nx(); else if (a === '--warps') o.warps = true; else if (m[a]) o[m[a]] = +nx(); }
   return o;
 }
 
@@ -617,7 +624,7 @@ function main() {
   const opts = parseArgs(process.argv);
   const rng = makeRng(opts.seed);
   const LIGHTS = ['day', 'golden', 'evening'], WSTY = ['hedge', 'blossom', 'fence'];
-  console.log(`Puzzle Forge — ${opts.count} room/heart layouts, ${opts.boxes} gifts, ${opts.w}x${opts.h}, ${opts.colors > 0 ? opts.colors + ' colours' : 'neutral'}, seed ${opts.seed}`);
+  console.log(`Puzzle Forge — ${opts.count} room/heart layouts, ${opts.boxes} gifts, ${opts.w}x${opts.h}, ${opts.colors > 0 ? opts.colors + ' colours' : 'neutral'}${opts.warps ? ', warps' : ''}, seed ${opts.seed}`);
   const t0 = Date.now();
   const tmpls = templates(opts.w, opts.h);
   const kept = []; const seenSig = new Set();
@@ -635,6 +642,12 @@ function main() {
     for (let i = 0; i < grid.N; i++) { grid.goal[i] = 0; grid.gcol[i] = 0; }
     for (const gi of goals) grid.goal[gi] = 1;
     if (opts.colors > 0) { shuffle(rng, goals).forEach((g, idx) => grid.gcol[g] = (idx % opts.colors) + 1); }
+    grid.warps = [];
+    if (opts.warps) {
+      const wc = shuffle(rng, free.filter((i) => !grid.goal[i]));
+      if (wc.length < 2) continue;
+      grid.warps = [wc[0], wc[1]].sort((a, b) => a - b);
+    }
     grid.computeDead();
     if (goals.some((gi) => grid.dead[gi])) continue;
 

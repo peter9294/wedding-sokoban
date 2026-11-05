@@ -74,6 +74,7 @@ hand would never feel it; the solver does.
 --count N    room/heart layouts to try      (default 200)
 --boxes N    gifts per puzzle, 2–4           (default 3)
 --colors N   colour-matched gifts/hearts     (default 0 = neutral; 2 = blue+lavender)
+--warps      add two warp pads (player teleports between them)   (off)
 --w N --h N  interior room size              (default 6 x 6; use 5x5 / 5x6 so
                                               floor cells stay ≤ 30)
 --keep N     how many top puzzles to emit    (default 8)
@@ -96,7 +97,36 @@ gifts split evenly across colours and the solved board matches like to like. Thi
 *sharpens* the grading rather than complicating it: a gift can no longer slide to
 the nearest heart, so detour and returns climb — a 4-gift / 2-colour batch
 routinely hits returns 5–6 and detour 8–10 where neutral tops out around 3 and 6.
-Still engine-verified end to end. (Rolling stones and warp pads are next.)
+Still engine-verified end to end. Colours compose with warps.
+
+## Warp pads (`--warps`)
+
+Adds two warp pads (`o` on `floor`); stepping onto one teleports the player to
+the other. Teleport only changes *player* reachability (gifts never teleport), so
+the solver's reachability and the verifier are both warp-aware — in fact the
+verifier now routes the player through the **real engine** at every step, so a
+teleport (or, later, a stone-slide) can never make it falsely pass. Warp levels
+that survive the gates are ones where the pad genuinely matters (it's the only
+way to get behind a gift in time); where it doesn't, the level plays like a
+no-warp room and gets filtered out.
+
+One honest caveat: for a tiny fraction of warp candidates (~0.2%) the solver's
+teleport model and the engine disagree on an edge case (the player can't rest on
+a pad when its partner is blocked). The engine-truth verifier catches every one
+and **drops** it, so nothing broken is ever emitted — you just lose a few
+candidates. Warps also enlarge the search, so a 4-gift `--colors 2 --warps` batch
+is slow (~1 min); drop to 3 gifts or a 5×5 room if you want it snappy.
+
+## Rolling stones (not yet generated)
+
+Stones slide until they hit something, which makes them wonderful hand-authored
+puzzle pieces (the designers already use them — Stone Bridge, Cold Feet) but a
+poor fit for this tool's *reverse* generation: "un-sliding" a stone from the
+solved board is ambiguous, and the solved board doesn't pin the stone anywhere,
+so reverse-BFS has no single source. Doing stones right needs a forward-search
+generator (or a "grade this existing level" mode so the designers' hand-made
+stone stages get the same returns/detour/trap read). That's the honest next step
+rather than a shaky bolt-on.
 
 ## Honest limits
 
