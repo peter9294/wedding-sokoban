@@ -22,13 +22,13 @@ export const CONFIG = {
   //   https://docs.google.com/forms/d/e/1FAIpQL.../formResponse
   // Leave '' to run the game WITHOUT saving scores (local play still works).
   form: {
-    actionUrl: '',
+    actionUrl: 'https://docs.google.com/forms/d/e/1FAIpQLSdkAJcKblDam7ApLsBe1o38-dKbSRSKKMG9RloZMhh9uMLx7w/formResponse',
     // Field IDs from the form, e.g. 'entry.1234567890'.
     entries: {
-      name: '',     // the player's name
-      solved: '',   // number of DISTINCT stages they've cleared
-      stage: '',    // the stage number they just cleared
-      session: ''   // random per-player id (for manual de-duping in the Sheet)
+      name: 'entry.1798356637',     // the player's name
+      solved: 'entry.177947520',    // number of DISTINCT stages they've cleared
+      stage: 'entry.1780119524',    // the stage number they just cleared
+      session: 'entry.1193715062'   // random per-player id (for manual de-duping in the Sheet)
     }
   },
 
@@ -37,7 +37,7 @@ export const CONFIG = {
   //   https://docs.google.com/spreadsheets/d/SHEET_ID/gviz/tq?tqx=out:json&sheet=Form%20Responses%201&headers=1
   // Leave '' to show a friendly "leaderboard not configured yet" message.
   sheet: {
-    readUrl: ''
+    readUrl: 'https://docs.google.com/spreadsheets/d/1Q9lErOhb8RgtX9hOyNxIdb0OLgxdj_Emoe7XlLwbe-w/gviz/tq?tqx=out:json&sheet=Form%20responses%201&headers=1'
   },
 
   leaderboard: {
