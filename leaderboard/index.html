@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Leaderboard &middot; Something Pushed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../styles.css" />
+  <style>
+    body { overflow: auto; }
+    .lb { max-width: 560px; height: auto; min-height: 100dvh; padding: 20px 16px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 16px; }
+    .lb-head { text-align: center; }
+    .lb-head .title { font-size: 34px; }
+    .lb-head .lead { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .lb-body { display: flex; flex-direction: column; gap: 8px; }
+    .lb-row {
+      display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px;
+      background: var(--card); border: 2px solid var(--ink); border-radius: 12px;
+      box-shadow: 0 2px 0 var(--ink); padding: 12px 14px;
+    }
+    .lb-row .rank { font-family: var(--title); font-weight: 700; font-size: 18px; text-align: center; color: var(--muted); }
+    .lb-row .who { font-family: var(--title); font-weight: 700; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-row .score { font-family: var(--title); font-weight: 700; font-size: 20px; color: var(--wine); white-space: nowrap; }
+    .lb-row .score small { font-family: var(--body); font-weight: 400; font-size: 11px; color: var(--muted); display: block; text-align: right; }
+    .lb-row.top1 { border-color: var(--amber); box-shadow: 0 3px 0 var(--amber); background: #fffdf6; }
+    .lb-row.top1 .rank, .lb-row.top2 .rank, .lb-row.top3 .rank { color: var(--ink); }
+    .lb-row .medal { font-size: 20px; }
+    .lb-empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+    .lb-foot { margin-top: auto; text-align: center; color: var(--muted); font-size: 12px; }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--amber); margin-right: 6px; vertical-align: middle; }
+    .dot.live { background: #4f9e45; }
+  </style>
+</head>
+<body>
+  <div id="app" class="lb">
+    <header class="lb-head">
+      <div class="eyebrow">Something Pushed</div>
+      <div class="title">Leaderboard</div>
+      <div class="lead">Most stages cleared</div>
+    </header>
+    <div id="lb-body" class="lb-body">
+      <div class="lb-empty">Loading scores&hellip;</div>
+    </div>
+    <footer class="lb-foot">
+      <span id="lb-status"><span class="dot"></span>Connecting&hellip;</span> &middot; <a class="link" href="../">Play the game &#8594;</a>
+    </footer>
+  </div>
+  <script type="module" src="./leaderboard.js"></script>
+</body>
+</html>

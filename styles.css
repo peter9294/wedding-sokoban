@@ -1,0 +1,128 @@
+/* Something Pushed — game styles. Tokens from the Art Style guide. */
+:root {
+  --ink: #3a2433; --ink-deep: #2a1a25; --paper: #fbf3ea; --card: #fffaf4;
+  --sunk: #f3e9e1; --checker: #ede0d6; --rule: #d9c9c4; --muted: #6e5664;
+  --rose: #e0507a; --wine: #a8325a; --pink: #f7a1bd; --blush: #fde3ea;
+  --gold: #f6c94f; --amber: #c98c2c; --disabled: #c3bec9;
+  --title: 'Pixelify Sans', system-ui, sans-serif;
+  --body: 'DM Mono', ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; background: var(--paper); color: var(--ink);
+  font-family: var(--body); -webkit-text-size-adjust: 100%;
+}
+body { overflow: hidden; overscroll-behavior: none; }
+
+#app {
+  position: relative; height: 100dvh; width: 100%;
+  max-width: 460px; margin: 0 auto; background: var(--paper);
+  display: flex; flex-direction: column;
+}
+
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.screen[hidden] { display: none; }
+
+/* ---- Shared bits ---- */
+.eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--wine); }
+.title { font-family: var(--title); font-weight: 700; color: var(--ink); line-height: 1.05; }
+.card {
+  background: var(--card); border: 2px solid var(--ink); border-radius: 12px; padding: 16px;
+}
+.btn {
+  font-family: var(--title); font-weight: 700; letter-spacing: .04em;
+  background: var(--rose); color: #fff; border: 2px solid var(--ink); border-radius: 8px;
+  box-shadow: 0 3px 0 var(--ink); padding: 12px 18px; cursor: pointer; font-size: 16px;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.btn:active { transform: translateY(3px); box-shadow: none; }
+.btn[disabled] { opacity: .45; box-shadow: none; cursor: default; }
+.btn.secondary { background: var(--card); color: var(--ink); }
+.btn.ghost { background: transparent; color: var(--wine); border-color: var(--rule); box-shadow: 0 2px 0 var(--rule); }
+.link { color: var(--wine); font-size: 12px; text-decoration: underline; cursor: pointer; }
+
+/* ---- Landing / Tutorial ---- */
+.sheet { margin: auto; width: min(92%, 400px); text-align: center; display: flex; flex-direction: column; gap: 14px; }
+.sheet .title { font-size: 30px; }
+.sheet .lead { color: var(--muted); font-size: 14px; }
+.input {
+  font-family: var(--title); font-size: 20px; text-align: center;
+  border: 2px solid var(--ink); border-radius: 8px; padding: 12px; width: 100%;
+  background: #fff; color: var(--ink);
+}
+.input:focus { outline: 3px solid var(--pink); }
+.input::placeholder { color: var(--muted); opacity: 1; }
+.tips { text-align: left; display: flex; flex-direction: column; gap: 12px; }
+.tip { display: flex; gap: 10px; align-items: flex-start; }
+.tip b { font-family: var(--title); }
+.tip span { color: var(--muted); font-size: 13px; }
+
+.topbar { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; }
+
+/* ---- Play HUD ---- */
+#screen-play { background: var(--paper); }
+.hud {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding: 10px 14px 6px; gap: 8px; border-bottom: 2px solid var(--ink); background: var(--card);
+}
+.hud .stage { font-family: var(--title); font-weight: 700; font-size: 16px; }
+.hud .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.hud .count { text-align: right; }
+.hud .count .lbl { font-size: 9px; letter-spacing: .08em; text-transform: uppercase; color: var(--wine); }
+.hud .count .val { font-family: var(--title); font-weight: 700; font-size: 15px; }
+
+.board-wrap {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 10px; min-height: 0; background:
+    repeating-conic-gradient(var(--checker) 0 25%, var(--sunk) 0 50%) 0 0 / 28px 28px;
+}
+#board {
+  image-rendering: pixelated; touch-action: none;
+  border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 5px 0 var(--ink);
+  background: var(--card);
+}
+
+.controls { padding: 8px 14px calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; }
+.dpad { display: grid; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); gap: 4px; }
+.dpad .pad {
+  border: 2px solid var(--ink); border-radius: 6px; background: var(--card); box-shadow: 0 2px 0 var(--ink);
+  font-family: var(--title); font-size: 18px; color: var(--ink); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.dpad .pad:active { transform: translateY(2px); box-shadow: none; }
+.dpad .pad.empty { border: none; box-shadow: none; background: transparent; cursor: default; }
+.du { grid-column: 2; grid-row: 1; } .dl { grid-column: 1; grid-row: 2; }
+.dr { grid-column: 3; grid-row: 2; } .dd { grid-column: 2; grid-row: 3; }
+.action-col { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+#btn-undo { width: 100%; }
+#btn-restart { align-self: flex-end; font-size: 12px; padding: 8px 12px; }
+
+/* ---- Overlays (win / all-clear) ---- */
+.overlay {
+  position: absolute; inset: 0; background: rgba(58,36,51,.6);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 5;
+}
+.overlay[hidden] { display: none; }
+.panel {
+  background: var(--card); border: 3px solid var(--ink); border-radius: 12px;
+  box-shadow: 0 5px 0 var(--ink); padding: 22px; width: min(90%, 300px); text-align: center;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.tag {
+  align-self: center; background: var(--ink); color: var(--gold); font-family: var(--title); font-weight: 700;
+  font-size: 11px; letter-spacing: .12em; padding: 4px 10px; border-radius: 999px;
+}
+.panel .big { font-family: var(--title); font-weight: 700; font-size: 26px; color: var(--wine); }
+.panel .note { color: var(--muted); font-size: 13px; }
+.panel .stat { font-family: var(--title); font-weight: 700; font-size: 18px; }
+.panel .row { display: flex; gap: 8px; }
+.panel .row .btn { flex: 1; }
+
+.toast {
+  position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
+  background: var(--ink); color: var(--card); font-size: 12px; padding: 8px 14px;
+  border-radius: 10px; box-shadow: 0 4px 0 var(--ink-deep); z-index: 6; opacity: 0;
+  transition: opacity .2s; pointer-events: none; max-width: 86%; text-align: center;
+}
+.toast.show { opacity: 1; }

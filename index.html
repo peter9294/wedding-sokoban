@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Something Pushed</title>
+  <meta name="description" content="A wedding sokoban. Push every gift onto a petal heart before the vows." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Landing -->
+    <section class="screen" id="screen-name">
+      <div class="topbar">
+        <span class="eyebrow">Something Pushed</span>
+        <a class="link" href="./leaderboard/" target="_blank" rel="noopener">Leaderboard &#8599;</a>
+      </div>
+      <div class="sheet">
+        <div class="title">Something Pushed</div>
+        <div class="lead">You're invited! What should we call you?</div>
+        <input class="input" id="name-input" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Your name" />
+        <button class="btn" id="confirm-name">CONFIRM</button>
+      </div>
+    </section>
+
+    <!-- Tutorial -->
+    <section class="screen" id="screen-tutorial" hidden>
+      <div class="sheet">
+        <div class="eyebrow">How to play</div>
+        <div class="title" id="tut-welcome">Welcome!</div>
+        <div class="tips">
+          <div class="tip"><b>&#8596;</b><span><b>Swipe to walk.</b> Walk into a gift to push it. You can't pull.</span></div>
+          <div class="tip"><b>&#9829;</b><span><b>Fill every heart.</b> A gift turns gold when it lands on a petal heart.</span></div>
+          <div class="tip"><b>&#8634;</b><span><b>Stuck?</b> Undo a move, or restart the stage.</span></div>
+        </div>
+        <button class="btn" id="got-it">GOT IT!</button>
+      </div>
+    </section>
+
+    <!-- Play -->
+    <section class="screen" id="screen-play" hidden>
+      <header class="hud">
+        <div>
+          <div class="stage" id="hud-stage">1 &middot; Garden Ceremony</div>
+          <div class="sub" id="hud-user">Hi, friend</div>
+        </div>
+        <div class="count">
+          <div class="lbl" id="hud-countlabel">Ends in</div>
+          <div class="val" id="hud-countdown">--:--:--</div>
+          <div class="sub" id="hud-solved">Solved 0</div>
+        </div>
+      </header>
+
+      <div class="board-wrap">
+        <canvas id="board" width="112" height="112"></canvas>
+      </div>
+
+      <div class="controls">
+        <div class="dpad">
+          <div class="pad du" data-dir="up">&#9650;</div>
+          <div class="pad dl" data-dir="left">&#9664;</div>
+          <div class="pad empty" style="grid-column:2;grid-row:2;"></div>
+          <div class="pad dr" data-dir="right">&#9654;</div>
+          <div class="pad dd" data-dir="down">&#9660;</div>
+        </div>
+        <div class="action-col">
+          <button class="btn" id="btn-undo">UNDO</button>
+          <button class="btn secondary" id="btn-restart">Restart</button>
+        </div>
+      </div>
+
+      <!-- Win -->
+      <div class="overlay" id="overlay-win" hidden>
+        <div class="panel">
+          <span class="tag">CLEARED</span>
+          <div class="big">Just married!</div>
+          <div class="note" id="win-note">Every gift found its heart.</div>
+          <div class="stat" id="win-solved">Solved 1 stage</div>
+          <button class="btn" id="next-stage">NEXT STAGE</button>
+          <a class="link" href="./leaderboard/" target="_blank" rel="noopener">See the leaderboard &#8599;</a>
+        </div>
+      </div>
+
+      <!-- All clear -->
+      <div class="overlay" id="overlay-allclear" hidden>
+        <div class="panel">
+          <span class="tag">ALL CLEAR</span>
+          <div class="big">You did it!</div>
+          <div class="note">You cleared every stage. More may appear before the big day.</div>
+          <div class="stat" id="allclear-solved">Solved 0 stages</div>
+          <div class="row">
+            <button class="btn secondary" id="replay-all">Play again</button>
+            <a class="btn" href="./leaderboard/" target="_blank" rel="noopener" style="text-decoration:none;align-items:center;justify-content:center;display:flex;">Leaderboard</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </section>
+  </div>
+
+  <script type="module" src="./src/game.js"></script>
+</body>
+</html>
