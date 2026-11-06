@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./arc.seed.js"></script>
+<script>/* seed the 21-stage arc on first open, never clobber saved edits */(function(){try{var D="sp-level-designer-v2";var has=false;try{var a=JSON.parse(localStorage.getItem(D));has=Array.isArray(a)&&a.length>0;}catch(e){}if(!has&&window.SP_SEED&&window.SP_SEED.length){localStorage.setItem(D,JSON.stringify(window.SP_SEED));}}catch(e){}})();</script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#fbf3ea;color:#3a2433;-webkit-font-smoothing:antialiased}
+a{color:#a8325a}a:hover{color:#e0507a}
+</style>
+</helmet>
+<div style="height:100vh;display:flex;flex-direction:column;overflow:hidden;font-family:'DM Mono',monospace;font-size:13px;color:#3a2433;background:#fbf3ea">
+
+  <header style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;padding:12px 20px;background:#fffaf4;border-bottom:2px solid #3a2433">
+    <div style="display:flex;align-items:center;gap:10px;margin-right:4px">
+      <div style="display:flex;flex-direction:column;line-height:1.1">
+        <span style="font-size:11px;color:#6e5664">Something Pushed</span>
+        <span style="font-family:'Pixelify Sans',sans-serif;font-size:20px;font-weight:700;white-space:nowrap">Level designer</span>
+      </div>
+      <span style="padding:2px 8px;border-radius:999px;background:#3a2433;color:#f6c94f;font-size:11px;letter-spacing:.08em">DEV</span>
+    </div>
+    <div style="display:flex;gap:6px;opacity:{{ editOpacity }}">
+      <sc-for list="{{ tools }}" as="t" hint-placeholder-count="4">
+        <button onClick="{{ t.select }}" title="{{ t.tip }}" style="height:36px;padding:0 10px;display:flex;align-items:center;gap:6px;font-family:'Pixelify Sans',sans-serif;font-size:14px;color:{{ t.fg }};background:{{ t.bg }};border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">{{ t.label }}<span style="font-family:'DM Mono',monospace;font-size:11px;color:{{ t.keyColor }}">{{ t.key }}</span></button>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button onClick="{{ undo }}" title="Undo (⌘Z)" aria-label="Undo" style="width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:{{ undoSt.bg }};border:2px solid {{ undoSt.border }};border-radius:8px;box-shadow:{{ undoSt.shadow }};cursor:{{ undoSt.cursor }}" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ undoIcon }}" alt="" style="display:block;width:24px;height:20px;image-rendering:pixelated;opacity:{{ undoSt.op }}"></sc-if></button>
+      <button onClick="{{ redo }}" title="Redo (⇧⌘Z)" aria-label="Redo" style="width:40px;height:36px;display:flex;align-items:center;justify-content:center;background:{{ redoSt.bg }};border:2px solid {{ redoSt.border }};border-radius:8px;box-shadow:{{ redoSt.shadow }};cursor:{{ redoSt.cursor }}" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ redoIcon }}" alt="" style="display:block;width:24px;height:20px;image-rendering:pixelated;opacity:{{ redoSt.op }}"></sc-if></button>
+    </div>
+    <div style="flex:1"></div>
+    <button onClick="{{ togglePlay }}" title="Playtest (P)" style="height:40px;padding:0 18px;display:flex;align-items:center;gap:10px;font-family:'Pixelify Sans',sans-serif;font-size:16px;font-weight:700;letter-spacing:.06em;color:#fffaf4;background:{{ playBg }};border:2px solid #3a2433;border-radius:8px;box-shadow:0 3px 0 #3a2433;cursor:pointer" style-active="transform:translateY(3px);box-shadow:none">{{ playLabel }}<span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:400;color:#fde3ea">{{ playKey }}</span></button>
+  </header>
+
+  <div style="flex:1;min-height:0;display:flex;gap:16px;padding:16px">
+
+    <aside style="flex:0 0 244px;min-width:0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:2px 2px 8px">
+      <div style="flex:none;padding:14px;background:#fffaf4;border:2px solid #3a2433;border-radius:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px">Levels</div>
+          <div style="font-size:11px;color:#6e5664">stage order</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <sc-for list="{{ levelList }}" as="l" hint-placeholder-count="2">
+            <button onClick="{{ l.select }}" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:0;border-radius:8px;background:{{ l.bg }};color:{{ l.fg }};font-family:'DM Mono',monospace;font-size:13px;text-align:left;cursor:pointer"><span style="display:flex;gap:8px;min-width:0"><span style="color:{{ l.numColor }}">{{ l.num }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.name }}</span></span><span style="flex:none;font-size:11px;color:{{ l.numColor }}">{{ l.size }}</span></button>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 36px 36px;gap:6px">
+          <button onClick="{{ newLevel }}" style="height:32px;font-family:'Pixelify Sans',sans-serif;font-size:13px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">New</button>
+          <button onClick="{{ dupLevel }}" style="height:32px;font-family:'Pixelify Sans',sans-serif;font-size:13px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">Duplicate</button>
+          <button onClick="{{ levelUp }}" title="Move up (⌥↑)" aria-label="Move level up" style="height:32px;display:flex;align-items:center;justify-content:center;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer;opacity:{{ upOpacity }}" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ arrowIcon }}" alt="" style="display:block;width:14px;height:14px;image-rendering:pixelated"></sc-if></button>
+          <button onClick="{{ levelDown }}" title="Move down (⌥↓)" aria-label="Move level down" style="height:32px;display:flex;align-items:center;justify-content:center;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer;opacity:{{ downOpacity }}" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ arrowIcon }}" alt="" style="display:block;width:14px;height:14px;image-rendering:pixelated;transform:rotate(180deg)"></sc-if></button>
+        </div>
+        <button onClick="{{ delLevel }}" style="height:30px;border:0;background:none;font-family:'DM Mono',monospace;font-size:12px;color:#a8325a;text-decoration:underline;cursor:pointer;opacity:{{ delOpacity }}">Delete this level</button>
+      </div>
+
+      <div style="flex:none;padding:14px;background:#fffaf4;border:2px solid #3a2433;border-radius:12px;display:flex;flex-direction:column;gap:12px;opacity:{{ editOpacity }}">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px">Tiles</div>
+          <div style="font-size:11px;color:#6e5664">key = map char</div>
+        </div>
+        <sc-for list="{{ palette }}" as="g" hint-placeholder-count="3">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a8325a">{{ g.name }}</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+              <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+                <button onClick="{{ it.pick }}" title="{{ it.tip }}" aria-label="{{ it.name }}" style="position:relative;height:48px;padding:0;display:flex;align-items:center;justify-content:center;border:2px solid {{ it.border }};border-radius:8px;background:{{ it.bg }};cursor:pointer">
+                  <sc-if value="{{ it.src }}" hint-placeholder-val="{{ false }}"><img src="{{ it.src }}" alt="" style="display:block;width:32px;height:32px;image-rendering:pixelated;border-radius:3px"></sc-if>
+                  <span style="position:absolute;right:3px;bottom:2px;font-size:10px;line-height:1;color:{{ it.keyColor }}">{{ it.ch }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f3e9e1">
+          <span style="flex:1;min-width:0;font-family:'Pixelify Sans',sans-serif;font-size:15px">{{ brushName }}</span>
+          <span style="flex:none;font-size:11px;color:#6e5664">{{ brushLayer }}</span>
+        </div>
+      </div>
+    </aside>
+
+    <main style="position:relative;flex:1 1 0;min-width:0;min-height:0;display:flex;flex-direction:column;gap:10px">
+      <div style="flex:1;min-height:0;overflow:auto;display:flex;padding:24px;box-sizing:border-box;border:2px solid #3a2433;border-radius:12px;background-color:#f3e9e1;background-image:linear-gradient(45deg,#ede0d6 25%,transparent 25%,transparent 75%,#ede0d6 75%),linear-gradient(45deg,#ede0d6 25%,transparent 25%,transparent 75%,#ede0d6 75%);background-size:24px 24px;background-position:0 0,12px 12px">
+        <div style="position:relative;flex:none;margin:auto;border:3px solid #3a2433;border-radius:10px;overflow:hidden;box-shadow:0 5px 0 #3a2433;line-height:0">
+          <canvas ref="{{ canvasRef }}" width="{{ cw }}" height="{{ ch }}" onMouseDown="{{ onDown }}" onMouseMove="{{ onMove }}" onMouseLeave="{{ onLeave }}" onContextMenu="{{ onCtx }}" onTouchStart="{{ onTouchStart }}" onTouchEnd="{{ onTouchEnd }}" style="display:block;width:{{ cssW }}px;height:{{ cssH }}px;image-rendering:pixelated;cursor:{{ cursor }};touch-action:none"></canvas>
+          <sc-if value="{{ showGrid }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(58,36,51,.16) 1px,transparent 1px),linear-gradient(to bottom,rgba(58,36,51,.16) 1px,transparent 1px);background-size:{{ cell }}px {{ cell }}px"></div>
+          </sc-if>
+          <sc-if value="{{ won }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(58,36,51,.6);line-height:1.4">
+              <div style="width:100%;max-width:280px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;background:#fffaf4;border:3px solid #3a2433;border-radius:12px;box-shadow:0 5px 0 #2a1a25">
+                <div style="padding:4px 10px;background:#c98c2c;color:#fffaf4;font-family:'Pixelify Sans',sans-serif;font-size:12px;letter-spacing:.12em;border-radius:4px">CLEARED</div>
+                <div style="font-family:'Pixelify Sans',sans-serif;font-size:28px;font-weight:700;color:#a8325a;line-height:1">Just married!</div>
+                <div style="font-size:12px;color:#6e5664">{{ lvName }} cleared in playtest.</div>
+                <div style="width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                  <button onClick="{{ replay }}" style="height:40px;font-family:'Pixelify Sans',sans-serif;font-size:15px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">Replay</button>
+                  <button onClick="{{ togglePlay }}" style="height:40px;font-family:'Pixelify Sans',sans-serif;font-size:15px;color:#fffaf4;background:#e0507a;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">Edit</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:50%;bottom:64px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:10px 14px;max-width:calc(100% - 32px);box-sizing:border-box;background:#3a2433;color:#fffaf4;border-radius:10px;box-shadow:0 4px 0 #2a1a25;font-size:12px">
+          <span style="text-wrap:pretty">{{ toastText }}</span>
+          <sc-if value="{{ toastAction }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ toastRun }}" style="flex:none;height:28px;padding:0 10px;border:0;border-radius:6px;background:#f6c94f;color:#3a2433;font-family:'Pixelify Sans',sans-serif;font-size:13px;cursor:pointer">{{ toastAction }}</button>
+          </sc-if>
+        </div>
+      </sc-if>
+      <div style="flex:none;display:flex;align-items:center;gap:12px;padding:0 4px;font-size:12px;color:#6e5664">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;line-height:1.4">
+          <span style="color:#3a2433;text-wrap:pretty">{{ statusLeft }}</span>
+          <span>{{ statusRight }}</span>
+        </div>
+        <div style="flex:none;display:flex;align-items:center;gap:4px">
+          <button onClick="{{ zoomOut }}" aria-label="Zoom out" title="Zoom out ([)" style="width:32px;height:32px;font-family:'Pixelify Sans',sans-serif;font-size:16px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">−</button>
+          <span style="min-width:28px;text-align:center;color:#3a2433;font-variant-numeric:tabular-nums">{{ zoom }}×</span>
+          <button onClick="{{ zoomIn }}" aria-label="Zoom in" title="Zoom in (])" style="width:32px;height:32px;font-family:'Pixelify Sans',sans-serif;font-size:16px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">+</button>
+        </div>
+      </div>
+    </main>
+
+    <aside style="flex:0 0 272px;min-width:0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding:2px 2px 8px">
+      <div style="flex:none;padding:14px;background:#fffaf4;border:2px solid #3a2433;border-radius:12px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px">Level</div>
+        <label style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a8325a">Name</span>
+          <input value="{{ lvName }}" onChange="{{ setName }}" style="width:100%;box-sizing:border-box;height:36px;padding:0 10px;border:2px solid #3a2433;border-radius:8px;background:#ffffff;font-family:'Pixelify Sans',sans-serif;font-size:16px;color:#3a2433;outline:none">
+        </label>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a8325a">Lighting</span>
+          <div style="display:flex;padding:2px;gap:2px;border:2px solid #3a2433;border-radius:8px;background:#ffffff">
+            <sc-for list="{{ lightOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.select }}" style="flex:1;height:28px;border:0;border-radius:5px;background:{{ o.bg }};color:{{ o.fg }};font-family:'DM Mono',monospace;font-size:12px;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#a8325a">Wall style</span>
+          <div style="display:flex;padding:2px;gap:2px;border:2px solid #3a2433;border-radius:8px;background:#ffffff">
+            <sc-for list="{{ wallOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.select }}" style="flex:1;height:28px;border:0;border-radius:5px;background:{{ o.bg }};color:{{ o.fg }};font-family:'DM Mono',monospace;font-size:12px;cursor:pointer">{{ o.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:none;padding:14px;background:#fffaf4;border:2px solid #3a2433;border-radius:12px;display:flex;flex-direction:column;gap:10px;opacity:{{ editOpacity }}">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px">Size</div>
+          <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px;font-variant-numeric:tabular-nums">{{ lvW }} × {{ lvH }}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+          <sc-for list="{{ edges }}" as="e" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="flex:1;font-size:12px;color:#6e5664">{{ e.label }}</span>
+              <button onClick="{{ e.minus }}" aria-label="{{ e.minusLabel }}" style="width:28px;height:28px;border:2px solid #3a2433;border-radius:6px;background:#fffaf4;color:#3a2433;font-size:14px;cursor:pointer;box-shadow:0 2px 0 #3a2433" style-active="transform:translateY(2px);box-shadow:none">−</button>
+              <button onClick="{{ e.plus }}" aria-label="{{ e.plusLabel }}" style="width:28px;height:28px;border:2px solid #3a2433;border-radius:6px;background:#fffaf4;color:#3a2433;font-size:14px;cursor:pointer;box-shadow:0 2px 0 #3a2433" style-active="transform:translateY(2px);box-shadow:none">+</button>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding-top:4px;border-top:1.5px dashed #d9c9c4">
+          <span style="flex:1;font-size:12px;color:#6e5664">Shift map <span style="color:#a8325a">⇧ + arrows</span></span>
+          <button onClick="{{ shiftL }}" aria-label="Shift left" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #3a2433;border-radius:6px;background:#fffaf4;cursor:pointer;box-shadow:0 2px 0 #3a2433" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ arrowIcon }}" alt="" style="display:block;width:12px;height:12px;image-rendering:pixelated;transform:rotate(-90deg)"></sc-if></button>
+          <button onClick="{{ shiftU }}" aria-label="Shift up" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #3a2433;border-radius:6px;background:#fffaf4;cursor:pointer;box-shadow:0 2px 0 #3a2433" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ arrowIcon }}" alt="" style="display:block;width:12px;height:12px;image-rendering:pixelated"></sc-if></button>
+          <button onClick="{{ shiftD }}" aria-label="Shift down" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #3a2433;border-radius:6px;background:#fffaf4;cursor:pointer;box-shadow:0 2px 0 #3a2433" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ arrowIcon }}" alt="" style="display:block;width:12px;height:12px;image-rendering:pixelated;transform:rotate(180deg)"></sc-if></button>
+          <button onClick="{{ shiftR }}" aria-label="Shift right" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid #3a2433;border-radius:6px;background:#fffaf4;cursor:pointer;box-shadow:0 2px 0 #3a2433" style-active="transform:translateY(2px);box-shadow:none"><sc-if value="{{ iconsReady }}" hint-placeholder-val="{{ false }}"><img src="{{ arrowIcon }}" alt="" style="display:block;width:12px;height:12px;image-rendering:pixelated;transform:rotate(90deg)"></sc-if></button>
+        </div>
+      </div>
+
+      <div style="flex:none;padding:14px;background:#fffaf4;border:2px solid #3a2433;border-radius:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px">Checks</div>
+          <div style="font-size:11px;color:#6e5664">click to locate</div>
+        </div>
+        <sc-for list="{{ issues }}" as="is" hint-placeholder-count="2">
+          <button onClick="{{ is.locate }}" style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:0;border-radius:8px;background:{{ is.bg }};color:#3a2433;font-family:'DM Mono',monospace;font-size:12px;line-height:1.45;text-align:left;cursor:pointer">
+            <span style="flex:none;margin-top:4px;width:8px;height:8px;border-radius:2px;background:{{ is.dot }}"></span>
+            <span style="text-wrap:pretty">{{ is.text }}</span>
+          </button>
+        </sc-for>
+      </div>
+
+      <div style="flex:none;padding:14px;background:#fffaf4;border:2px solid #3a2433;border-radius:12px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <div style="font-family:'Pixelify Sans',sans-serif;font-size:17px">Export</div>
+          <div style="font-size:11px;color:{{ exportNoteColor }}">{{ exportNote }}</div>
+        </div>
+        <textarea value="{{ exportText }}" onChange="{{ setDraft }}" spellcheck="false" style="height:220px;resize:vertical;padding:10px;border:2px solid #3a2433;border-radius:8px;background:#2a1a25;color:#fbf3ea;font-family:'DM Mono',monospace;font-size:11.5px;line-height:1.35;white-space:pre;outline:none"></textarea>
+        <div style="display:flex;gap:6px">
+          <button onClick="{{ copyJson }}" style="flex:1;height:32px;font-family:'Pixelify Sans',sans-serif;font-size:13px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">{{ copyLabel }}</button>
+          <button onClick="{{ applyDraft }}" style="flex:1;height:32px;font-family:'Pixelify Sans',sans-serif;font-size:13px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer;opacity:{{ applyOpacity }}" style-active="transform:translateY(2px);box-shadow:none">Apply</button>
+          <button onClick="{{ downloadAll }}" title="Download every level as levels.json" style="flex:1;height:32px;font-family:'Pixelify Sans',sans-serif;font-size:13px;color:#3a2433;background:#fffaf4;border:2px solid #3a2433;border-radius:8px;box-shadow:0 2px 0 #3a2433;cursor:pointer" style-active="transform:translateY(2px);box-shadow:none">All .json</button>
+        </div>
+        <div style="font-size:11px;line-height:1.5;color:#6e5664;text-wrap:pretty">Two layers: floor (terrain, hearts, warps) and map (walls, décor, objects). Paste one level (JSON or single-layer ASCII rows) and Apply, or paste a levels.json array to append every level. Levels autosave in this browser.</div>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showGrid&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;markDeadlocks&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;brushGhost&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  PAL = {M:'#e4e1e6',m:'#c3bec9',n:'#9c95a6',K:'#3a2433',W:'#fffaf4',w:'#eadfd9',v:'#bba6c9',P:'#f7a1bd',R:'#e0507a',r:'#a8325a',Y:'#f6c94f',y:'#c98c2c',S:'#f8cfa6',s:'#dd9f78',H:'#5a3326',h:'#7d4a35',A:'#c0643a',B:'#2f2b44',b:'#4b4668',G:'#9ad35b',g:'#86c34d',q:'#6fae42',L:'#4f9e45',l:'#2f6e3b',U:'#5bc3e8',u:'#b0e8f7',D:'#3a8cc4',t:'#8b5634',C:'#d8445a',c:'#a42e47',E:'#efe2c2',e:'#d6c296',O:'rgba(42,31,61,0.22)'};
+  FLOORS = '.=_~xo'; TOPS = '.#QfhlB@$kOc'; LIGHTS = ['day', 'golden', 'evening']; WALLS = ['hedge', 'blossom', 'fence'];
+  SOLIDTOP = '#fQhlB';
+  COLORS = [1, 2, 3, 4];
+  COLHEX = { 1: '#5bc3e8', 2: '#bba6c9', 3: '#9ad35b', 4: '#f6c94f', 5: '#e0507a', 6: '#c0643a', 7: '#86c34d', 8: '#d8445a', 9: '#b0e8f7' };
+  COLNAME = { 1: 'Blue', 2: 'Lavender', 3: 'Green', 4: 'Gold', 5: 'Rose', 6: 'Amber', 7: 'Leaf', 8: 'Red', 9: 'Sky' };
+  BRUSHES = [
+    { g: 'Floor', items: [['.', 'Meadow'], ['=', 'Aisle runner'], ['_', 'Stone path'], ['~', 'Pond'], ['x', 'Petal heart'], ['o', 'Warp pad']] },
+    { g: 'Walls & décor', items: [['#', 'Wall'], ['Q', 'Chapel brick'], ['f', 'Picket fence'], ['h', 'Guest chair'], ['l', 'Lantern'], ['B', 'Bride']] },
+    { g: 'Puzzle', items: [['@', 'Groom start'], ['$', 'Gift'], ['k', 'Cake'], ['*', 'Gift on heart'], ['O', 'Rolling stone'], ['c', 'Heart cage']] },
+    { g: 'Gift colours (push to matching heart)', items: [['g1', 'Blue gift'], ['g2', 'Lavender gift'], ['g3', 'Green gift'], ['g4', 'Gold gift']] },
+    { g: 'Heart colours (needs matching gift)', items: [['x1', 'Blue heart'], ['x2', 'Lavender heart'], ['x3', 'Green heart'], ['x4', 'Gold heart']] }
+  ];
+  NAME = Object.fromEntries(this.BRUSHES.flatMap(g => g.items));
+  THUMB = { '.': ['grassA'], '=': ['carpet'], '_': ['stone'], '~': ['water0', 'bank'], 'Q': ['grassB', 'brick'], 'f': ['grassA', 'fence'], 'h': ['grassB', 'shadow', 'chair'], 'l': ['grassA', 'shadow', 'lantern'], 'B': ['carpet', 'shadow', 'bride'], '@': ['grassA', 'shadow', 'groomDown'], '$': ['grassA', 'shadow', 'gift'], 'k': ['grassA', 'shadow', 'cake'], 'x': ['grassA', 'plateLip', 'plateFace'], '*': ['grassB', 'platePit', 'plateFaceDarkS', 'shadow', 'giftOn', 'sparkle'], 'O': ['grassB', 'shadow', 'boulder'], 'o': ['grassA', 'warp0', 'warpFx0'], 'c': ['grassB', 'cageBase', 'cageBars'] };
+  KEY = 'sp-level-designer-v2'; OLDKEY = 'sp-level-designer-v1';
+  D = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+  DIRS = ['up', 'down', 'left', 'right'];
+  canvasRef = React.createRef();
+  C = this.buildSprites();
+  solveTok = 0; solveCache = {};
+  state = { levels: this.load(), cur: 0, brush: '#', tool: 'brush', hover: null, play: null, hist: {}, draft: null, flash: null, zoom: 2, copied: false, applyErr: '', toast: null, solve: null, watching: false };
+
+  uid() { return Math.random().toString(36).slice(2); }
+  split(rows) {
+    const w = Math.max(0, ...rows.map(r => r.length)), pad = r => (r + '.'.repeat(w)).slice(0, w);
+    return {
+      floor: rows.map(r => [...pad(r)].map(ch => (this.FLOORS.includes(ch) ? ch : ch === '*' ? 'x' : '.')).join('')),
+      top: rows.map(r => [...pad(r)].map(ch => (this.FLOORS.includes(ch) ? '.' : ch === '*' ? '$' : ch)).join(''))
+    };
+  }
+  migrate(l) { if (l.floor && l.top) return l; const { rows, par, ...rest } = l; return { ...rest, ...this.split(rows || []) }; }
+  normalize(l) {
+    const m = this.migrate(l && typeof l === 'object' ? l : {}), rows = a => (Array.isArray(a) ? a.map(String) : []);
+    const top = rows(m.top), floor = rows(m.floor);
+    const h = Math.min(30, Math.max(4, top.length)), w = Math.min(24, Math.max(4, ...top.map(r => r.length)));
+    const pad = r => (String(r || '') + '.'.repeat(w)).slice(0, w), F = [], T = [];
+    for (let r = 0; r < h; r++) {
+      const fs = pad(floor[r]), ts = pad(top[r]); let fr = '', tr = '';
+      for (let c = 0; c < w; c++) {
+        let f = fs[c], t = ts[c];
+        const fd = f >= '1' && f <= '9', td = t >= '1' && t <= '9';   // floor digit = colour heart; top digit = colour gift
+        if (!fd && !this.FLOORS.includes(f)) f = '.';
+        if (t === '*') { f = 'x'; t = '$'; } else if (td) { /* colour gift stays on top */ } else if (this.FLOORS.includes(t)) { if (t !== '.' && f === '.') f = t; t = '.'; } else if (!this.TOPS.includes(t)) t = '.';
+        if (f === '~' && t !== '.') f = '.';
+        fr += f; tr += t;
+      }
+      F.push(fr); T.push(tr);
+    }
+    return { id: typeof m.id === 'string' && m.id ? m.id : this.uid(), name: typeof m.name === 'string' ? m.name.slice(0, 32) : 'Untitled', w, h, lighting: this.LIGHTS.includes(m.lighting) ? m.lighting : 'day', wallStyle: this.WALLS.includes(m.wallStyle) ? m.wallStyle : 'hedge', floor: F, top: T };
+  }
+  defaults() {
+    const a = { id: this.uid(), name: 'First Dance', w: 9, h: 8, lighting: 'day', wallStyle: 'hedge', ...this.split(['#########', '#.......#', '#.@.$.x.#', '#.......#', '#..$....#', '#..x....#', '#.......#', '#########']) };
+    const g = { id: this.uid(), name: 'Garden Ceremony', w: 11, h: 18, lighting: 'day', wallStyle: 'hedge', ...this.split(['###########', '#~~#lBl#~~#', '#~~xx=xx~~#', '#...x=x...#', '#.h..=..h.#', '#.h.$=$.h.#', '#....=...o#', '#.$..=..$.#', '#....=....#', '#.h..=..h.#', '#.hk.=.$h.#', '#....=..O.#', '#.l..=..l.#', '#....=....#', '#QQ..=..QQ#', '#QQ..=..QQ#', '#o...@....#', 'fffffffffff']) };
+    g.floor = g.floor.map((row, r) => [...row].map((ch, c) => (ch !== '.' ? ch : c === 5 && r >= 1 && r <= 16 ? '=' : r === 16 && c > 0 && c < 10 ? '_' : ch)).join(''));
+    return [a, g];
+  }
+  load() {
+    for (const k of [this.KEY, this.OLDKEY]) { try { const v = JSON.parse(localStorage.getItem(k)); if (Array.isArray(v) && v.length) { const ids = new Set(); return v.map(l => { const n = this.normalize(l); if (ids.has(n.id)) n.id = this.uid(); ids.add(n.id); return n; }); } } catch (e) {} }
+    return this.defaults();
+  }
+  lvl() { return this.state.levels[this.state.cur]; }
+  sig(L) { return L.w + 'x' + L.h + '|' + L.floor.join('') + '|' + L.top.join(''); }
+
+  norm(rows) { const o = rows.map(r => (r + '.'.repeat(16)).slice(0, 16)); while (o.length < 16) o.push('.'.repeat(16)); return o.slice(0, 16); }
+  blank(ch) { return Array(16).fill(ch.repeat(16)); }
+  set(rows, x, y, ch) { if (y < 0 || y > 15 || x < 0 || x > 15) return; rows[y] = rows[y].slice(0, x) + ch + rows[y].slice(x + 1); }
+  swap(rows, m) { return rows.map(r => [...r].map(ch => m[ch] || ch).join('')); }
+  flip(rows) { return rows.map(r => [...r].reverse().join('')); }
+  toCanvas(rows) { const cv = document.createElement('canvas'); cv.width = cv.height = 16; const x = cv.getContext('2d'); rows.forEach((row, y) => [...row].forEach((ch, i) => { const col = this.PAL[ch]; if (col) { x.fillStyle = col; x.fillRect(i, y, 1, 1); } })); return cv; }
+
+  buildSprites() {
+    const R = {};
+    const grass = (base, tuft, pts) => { const g = this.blank(base); pts.forEach(([x, y]) => { this.set(g, x, y, tuft); this.set(g, x + 2, y, tuft); this.set(g, x + 1, y + 1, tuft); }); return g; };
+    R.grassA = grass('G', 'g', [[3, 3], [10, 8], [5, 12]]);
+    R.grassB = grass('g', 'q', [[11, 2], [2, 9], [8, 13]]);
+    R.carpet = Array.from({ length: 16 }, () => [...Array(16)].map((_, x) => (x === 0 || x === 15 ? 'c' : x === 1 || x === 14 ? 'Y' : 'C')).join(''));
+    [[5, 3], [10, 9], [7, 13], [4, 10]].forEach(([x, y]) => this.set(R.carpet, x, y, 'P'));
+    R.stone = Array.from({ length: 16 }, (_, y) => [...Array(16)].map((_, x) => { if (y === 7 || y === 15) return 'e'; if (y < 7) return x === 7 || x === 15 ? 'e' : 'E'; return x === 3 || x === 11 ? 'e' : 'E'; }).join(''));
+    const water = (gl) => { const w = this.blank('U'); gl.forEach(([x, y, n]) => { for (let i = 0; i < n; i++) this.set(w, x + i, y, 'u'); }); return w; };
+    R.water0 = water([[2, 4, 3], [9, 8, 3], [5, 12, 2], [12, 13, 2]]);
+    R.water1 = water([[3, 4, 2], [10, 8, 3], [4, 12, 3], [12, 3, 2]]);
+    R.bank = this.norm(['DDDDDDDDDDDDDDDD', 'DDDDDDDDDDDDDDDD', 'D.DD.DDD.DD.DDD.']);
+    R.wallShadow = this.norm(['OOOOOOOOOOOOOOOO', 'OOOOOOOOOOOOOOOO', 'OOOOOOOOOOOOOOOO']);
+    R.shadow = this.norm([...Array(13).fill(''), '...OOOOOOOOOO...', '..OOOOOOOOOOOO..', '....OOOOOOOO....']);
+    const heart = this.norm(['', '', '..R..........P..', '', '....rrr..rrr....', '...rPPRrrRRRr...', '...rPRRRRRRRr...', '...rRRRRRRRRr...', '....rRRRRRRr....', '.....rRRRRr.....', '......rRRr......', '.......rr.......', '', '.P.........R....']);
+    const core = heart.map((row, y) => (y === 2 || y === 13 ? '.'.repeat(16) : row));
+    R.plateFace = this.norm(['', '.KKKKKKKKKKKKKK.', ...Array(11).fill('.KWWWWWWWWWWWwK.'), '.KwwwwwwwwwwwwK.']).map((row, y) => [...row].map((ch, i) => (core[y][i] !== '.' ? core[y][i] : ch)).join(''));
+    const dark = this.swap(R.plateFace, { W: 'w', w: 'v', R: 'r', P: 'R', r: 'c' });
+    R.plateFaceDarkS = this.norm(['', '', ...dark.slice(0, 14)]);
+    R.plateLip = this.norm([...Array(14).fill(''), '.KPPPPPPPPPPPPK.', '.KKKKKKKKKKKKKK.']);
+    R.platePit = this.norm(['', '.KKKKKKKKKKKKKK.', '.KOOOOOOOOOOOOK.']);
+    R.gift = this.norm(['', '.....KK..KK.....', '....KRRKKRRK....', '...KKRrKKrRKK...', '.KKKKKKRRKKKKKK.', '.KWWWWWRRWWWWWK.', '.KWWWWWRRWWWWWK.', '.KRRRRRRRRRRRRK.', '.KWWWWWRRWWWWWK.', '.KKKKKKKKKKKKKK.', '.KwwwwwrrwwwwwK.', '.KwwwwwrrwwwwwK.', '.KwwwwwrrwwwwwK.', '.KvvvvvrrvvvvvK.', '.KKKKKKKKKKKKKK.']);
+    R.giftOn = this.swap(R.gift, { R: 'Y', r: 'y' });
+    R.cake = this.norm(['', '.......KK.......', '......KRRK......', '.....KKKKKK.....', '.....KWWWWK.....', '.....KwPwPK.....', '...KKKKKKKKKK...', '...KWWWWWWWWK...', '...KPwPwPwPwK...', '...KwwwwwwwwK...', '.KKKKKKKKKKKKKK.', '.KWWWWWWWWWWWWK.', '.KPwPwPwPwPwPwK.', '.KwwwwwwwwwwwwK.', '.KKKKKKKKKKKKKK.']);
+    R.cakeOn = this.swap(R.cake, { P: 'Y', R: 'Y', r: 'y' });
+    R.sparkle = this.norm(['.............W..', '............WWW.', '.............W..', '', '', '', '.W..............', 'WWW.............', '.W..............']);
+    R.hedge = this.norm(['', '....KKKKKKKK....', '..KKLLLLLLLLKK..', '.KLLLGLLLLLGLLK.', '.KLGGLLLRLLLLLK.', 'KLLGLLLLLLLGGLLK', 'KLLLLLRLLLLLGLLK', 'KLLLLLLLLLLLLLLK', 'KlLLLLLLLRLLLLlK', 'KllLLLLLLLLLLllK', 'KllllllllllllllK', 'KlllRlllllllRllK', 'KllllllllllllllK', '.KllllllllllllK.', '..KKKKKKKKKKKK..']);
+    R.blossom = this.swap(R.hedge, { L: 'P', l: 'r', G: 'W', R: 'Y' });
+    R.fence = this.norm(['', '..K....K....K...', '.KWK..KWK..KWK..', '.KWK..KWK..KWK..', 'KKWKKKKWKKKKWKKK', 'KWWWWWWWWWWWWWWK', 'KwwwwwwwwwwwwwwK', 'KKWKKKKWKKKKWKKK', '.KWK..KWK..KWK..', '.KwK..KwK..KwK..', 'KKWKKKKWKKKKWKKK', 'KWWWWWWWWWWWWWWK', 'KwwwwwwwwwwwwwwK', 'KKwKKKKwKKKKwKKK', '.KvK..KvK..KvK..', '.KKK..KKK..KKK..']);
+    R.chair = this.norm(['', '', '....KKKKKKKK....', '....KWWWWWWK....', '....KWKKKKWK....', '....KWKRRKWK....', '....KWKKKKWK....', '....KWWWWWWK....', '...KKKKKKKKKK...', '...KWWWWWWWWK...', '...KwwwwwwwwK...', '...KKKKKKKKKK...', '...KwK....KwK...', '...KwK....KwK...', '...KKK....KKK...']);
+    R.lantern = this.norm(['', '.......KK.......', '......KyyK......', '.....KKKKKK.....', '.....KyYYyK.....', '.....KYWWYK.....', '.....KYWWYK.....', '.....KyYYyK.....', '.....KKKKKK.....', '......KttK......', '......KttK......', '......KttK......', '.....KKttKK.....', '....KttttttK....', '....KKKKKKKK....']);
+    R.brick = this.norm(['KKKKKKKKKKKKKKKK', 'KWMMMMMMMMMMMMMK', 'KMMMMMMMMMMMMMMK', 'KMMMMMMMMMMMMMmK', 'KKKKKKKKKKKKKKKK', 'KMMMMMMnMMMMMMmK', 'KMMMMMMnMMMMMMmK', 'KmmmmmmnmmmmmmmK', 'KnnnnnnnnnnnnnnK', 'KMMMnMMMMMMnMMmK', 'KMMMnMMMMMMnMMmK', 'KmmmnmmmmmmnmmmK', 'KnnnnnnnnnnnnnnK', 'KMMMMMMnMMMMMMmK', 'KmmmmmmnmmmmmmmK', 'KKKKKKKKKKKKKKKK']);
+    R.warp0 = this.norm(['', '', '', '.....KKKKKK.....', '...KKvvvvvvKK...', '..KvPPPPPPPPvK..', '.KvPWWWWWWWWPvK.', '.KvPWuuuuuuWPvK.', '.KvPWuuuuuuWPvK.', '.KvPWWWWWWWWPvK.', '..KvPPPPPPPPvK..', '..KKvvvvvvvvKK..', '....KKKKKKKK....']);
+    R.warp1 = this.swap(R.warp0, { u: 'W', W: 'u', P: 'v', v: 'P' });
+    R.warpFx0 = this.norm(['', '.....u..........', '..........W.....', '', '......W...u.....']);
+    R.warpFx1 = this.norm(['......W.........', '.........u......', '.....u..........', '...........W....', '']);
+    R.boulder = this.norm(['', '.....KKKKKK.....', '...KKMMMMMMKK...', '..KMMWWMMMMmmK..', '.KMMWWMMMMMMmmK.', '.KMWMMMMMMMMmmK.', 'KMMMMMMnMMMMmmnK', 'KMMMMMnnMMMMmmnK', 'KMMMMMMMMMMmmnnK', 'KmMMMMMMMMmmmnnK', 'KmmMMMMMMmmmnnnK', '.KmmmmmmmmmnnnK.', '.KnmmmmmmmnnnnK.', '..KnnnnnnnnnnK..', '...KKKKKKKKKK...']);
+    const rot = rows => rows.map((_, y) => rows.map((_, x) => rows[15 - x][y]).join(''));
+    R.boulder1 = rot(R.boulder); R.boulder2 = rot(R.boulder1); R.boulder3 = rot(R.boulder2);
+    R.cageBars = ['', 'KKKKKKKKKKKKKKKK', 'KYYYYYYYYYYYYYYK', 'KyyyyyyyyyyyyyyK', 'KKKKKKKKKKKKKKKK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KMK.KMK..KMK.KMK', 'KnK.KnK..KnK.KnK', 'KnK.KnK..KnK.KnK', '', '', '', ''];
+    R.cageBase = this.norm([...Array(11).fill(''), '.OOOOOOOOOOOOOO.', 'KKKKKKKKKKKKKKKK', 'KnnnnnnnnnnnnnnK', 'KKKKKKKKKKKKKKKK']);
+    R.groomDown = this.norm(['', '....KKKKKKKK....', '...KHHHHHHHHK...', '..KHHhHHHHhHHK..', '..KHSSSSSSSSHK..', '..KSSKSSSSKSSK..', '..KSSKSSSSKSSK..', '..KSPSSSSSSPSK..', '...KsSSSSSSsK...', '...KBWWRRWWBK...', '..KBRBWRRWBBBK..', '..KSKBBWWBBKSK..', '...KKBBBBBBKK...', '....KBBKKBBK....', '....KKK..KKK....']);
+    R.groomUp = this.norm(['', '....KKKKKKKK....', '...KHHHHHHHHK...', '..KHHhHHHHhHHK..', '..KHHHHHHHHHHK..', '..KHHHhHHhHHHK..', '..KHHHHHHHHHHK..', '..KsHHHHHHHHsK..', '....KSSSSSSK....', '...KBBBBBBBBK...', '..KBBBBbbBBBBK..', '..KSKBBbbBBKSK..', '...KKBBBBBBKK...', '....KBBKKBBK....', '....KKK..KKK....']);
+    R.groomRight = this.norm(['', '.....KKKKKK.....', '....KHHHHHHK....', '...KHHhHHHHHK...', '...KHHHHSSSSK...', '...KHHHSSSKSK...', '...KHHsSSSKSK...', '...KHSSSSSPSSK..', '....KsSSSSSK....', '....KBBBWRK.....', '...KBBBBBWK.....', '...KBBBBSSK.....', '....KBBBBBK.....', '....KBBKBBK.....', '....KKK.KKKK....']);
+    R.groomPushRight = R.groomRight.slice(); R.groomPushRight[10] = '...KBBBBBBSSK...'; R.groomPushRight[11] = '...KBBBBBBSSK...';
+    R.groomLeft = this.flip(R.groomRight); R.groomPushLeft = this.flip(R.groomPushRight);
+    R.bride = this.norm(['......KKKK......', '....KKWWWWKK....', '...KWKAAAAKWK...', '..KWKAAPYAAKWK..', '..KWKASSSSAKWK..', '..KWKSKSSKSKWK..', '..KWKSPSSPSKWK..', '..KwWKsSSsKWwK..', '..KwWWKSSKWWwK..', '..KwWKWWWWKWwK..', '.KwWKSPRRPSKWwK.', '.KwKWWLRRLWWKwK.', '.KKWWWWWWWWWWKK.', '..KWwWWwWWwWWK..', '..KKKKKKKKKKKK..']);
+    const C = {};
+    Object.keys(R).forEach(k => { C[k] = this.toCanvas(R[k]); });
+    ['gift', 'cake', 'boulder'].forEach(k => {
+      const rows = R[k], on = (x, y) => x >= 0 && y >= 0 && x < 16 && y < 16 && rows[y][x] !== '.';
+      const ring1 = new Set(); const cv = document.createElement('canvas'); cv.width = cv.height = 16; const x = cv.getContext('2d');
+      for (let y = 0; y < 16; y++) for (let i = 0; i < 16; i++) if (!on(i, y) && (on(i - 1, y) || on(i + 1, y) || on(i, y - 1) || on(i, y + 1))) { ring1.add(i + ',' + y); x.fillStyle = '#2ef3ff'; x.fillRect(i, y, 1, 1); }
+      for (let y = 0; y < 16; y++) for (let i = 0; i < 16; i++) if (!on(i, y) && !ring1.has(i + ',' + y) && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => ring1.has((i + a) + ',' + (y + b)))) { x.fillStyle = 'rgba(46,243,255,0.45)'; x.fillRect(i, y, 1, 1); }
+      C[k + 'Glow'] = cv;
+    });
+    return C;
+  }
+
+  wallKey(ws) { return ws === 'fence' ? 'fence' : ws === 'blossom' ? 'blossom' : 'hedge'; }
+  _thumbs = {};
+  thumb(ch, ws) {
+    const key = ch + (ch === '#' ? ws : '');
+    if (!this._thumbs[key]) {
+      const cd = /^[gx][1-9]$/.test(ch);
+      const keys = cd ? (ch[0] === 'g' ? ['grassA', 'shadow', 'gift'] : ['grassA', 'plateLip', 'plateFace']) : ch === '#' ? ['grassA', this.wallKey(ws)] : this.THUMB[ch];
+      const cv = document.createElement('canvas'); cv.width = cv.height = 16; const x = cv.getContext('2d');
+      keys.forEach(k => x.drawImage(this.C[k], 0, 0));
+      if (cd) { x.strokeStyle = this.COLHEX[+ch[1]] || '#888'; x.lineWidth = 2; x.strokeRect(1, 1, 14, 14); }
+      this._thumbs[key] = { cv, url: cv.toDataURL() };
+    }
+    return this._thumbs[key];
+  }
+  icons() {
+    if (this._icons) return this._icons;
+    const mk = (rs) => { const cv = document.createElement('canvas'); cv.width = rs[0].length; cv.height = rs.length; const x = cv.getContext('2d'); x.fillStyle = '#3a2433'; rs.forEach((r, y) => [...r].forEach((ch, i) => { if (ch === 'X') x.fillRect(i, y, 1, 1); })); return cv.toDataURL(); };
+    const u = ['...X........', '..XX........', '.XXXXXXXX...', 'XXXXXXXXXX..', '.XXXXXXXXXX.', '..XX....XXX.', '...X.....XX.', '.........XX.', '....XXXXXX..', '....XXXXX...'];
+    return (this._icons = { iconsReady: true, undoIcon: mk(u), redoIcon: mk(u.map(r => [...r].reverse().join(''))), arrowIcon: mk(['...X...', '..XXX..', '.XXXXX.', 'XXXXXXX', '..XXX..', '..XXX..', '..XXX..']) });
+  }
+
+  parsed(L) {
+    if (this._pf === L.floor && this._pt === L.top) return this._pv;
+    const P = { W: L.w, H: L.h, floor: L.floor, top: L.top, boxes: [], stones: [], players: [], TG: new Set(), heartColor: {}, warps: [], cages: [], brides: [], cageSet: new Set() };
+    for (let r = 0; r < L.h; r++) for (let c = 0; c < L.w; c++) {
+      const f = L.floor[r][c], t = L.top[r][c];
+      if (f === 'x') { P.TG.add(r + ',' + c); P.heartColor[r + ',' + c] = 0; }
+      else if (f >= '1' && f <= '9') { P.TG.add(r + ',' + c); P.heartColor[r + ',' + c] = +f; }
+      if (f === 'o') P.warps.push({ r, c });
+      if (t === '@') P.players.push({ r, c });
+      else if (t === '$' || t === 'k') P.boxes.push({ r, c, kind: t === 'k' ? 'cake' : 'gift', color: 0 });
+      else if (t >= '1' && t <= '9') P.boxes.push({ r, c, kind: 'gift', color: +t });
+      else if (t === 'O') P.stones.push({ r, c });
+      else if (t === 'c') { P.cages.push({ r, c }); P.cageSet.add(r + ',' + c); }
+      else if (t === 'B') P.brides.push({ r, c });
+    }
+    P.player = P.players[0] || null;
+    this._pf = L.floor; this._pt = L.top; this._pv = P;
+    return P;
+  }
+  statSolid(P, r, c) { if (r < 0 || c < 0 || r >= P.H || c >= P.W) return true; return P.floor[r][c] === '~' || this.SOLIDTOP.includes(P.top[r][c]); }
+  cageOpen(P, st) {
+    if (!P.cages.length) return false;
+    const occ = new Set([...st.boxes, ...st.stones, ...(st.player ? [st.player] : [])].map(o => o.r + ',' + o.c));
+    const filled = k => { const hc = (P.heartColor || {})[k] || 0; if (hc === 0) return occ.has(k); const [r, c] = k.split(',').map(Number); return st.boxes.some(b => b.r === r && b.c === c && (b.color || 0) === hc); };
+    return (P.TG.size > 0 && [...P.TG].every(filled)) || P.cages.some(g => occ.has(g.r + ',' + g.c));
+  }
+  isWon(P, st) {
+    if (!P.cages.length) return st.boxes.length > 0 && st.boxes.every(b => { const k = b.r + ',' + b.c; if (!P.TG.has(k)) return false; const hc = (P.heartColor || {})[k] || 0; return hc === 0 || (b.color || 0) === hc; });
+    const p = st.player;
+    if (P.brides.length) return P.brides.some(b => Math.abs(b.r - p.r) + Math.abs(b.c - p.c) === 1);
+    return this.cageOpen(P, st) && P.cageSet.has(p.r + ',' + p.c);
+  }
+  step(P, s, dir) {
+    const [dr, dc] = this.D[dir], nr = s.player.r + dr, nc = s.player.c + dc;
+    const open = this.cageOpen(P, s);
+    const solid = (r, c) => this.statSolid(P, r, c) || (!open && P.cageSet.has(r + ',' + c));
+    const occ = (r, c, bx, sn) => bx.some(b => b.r === r && b.c === c) || sn.some(o => o.r === r && o.c === c);
+    const stay = (push) => ({ ...s, dir, push, moved: false, anim: null });
+    if (solid(nr, nc)) return stay(false);
+    let boxes = s.boxes, stones = s.stones, pushed = false, anim = null;
+    const bi = boxes.findIndex(b => b.r === nr && b.c === nc), si = stones.findIndex(o => o.r === nr && o.c === nc);
+    if (bi >= 0) {
+      const br = nr + dr, bc = nc + dc;
+      if (solid(br, bc) || occ(br, bc, boxes, stones)) return stay(true);
+      boxes = boxes.map((b, i) => (i === bi ? { ...b, r: br, c: bc } : b)); pushed = true;
+    } else if (si >= 0) {
+      let r = nr, c = nc;
+      while (!solid(r + dr, c + dc) && !occ(r + dr, c + dc, boxes, stones)) { r += dr; c += dc; }
+      if (r === nr && c === nc) return stay(true);
+      stones = stones.map((o, i) => (i === si ? { r, c } : o)); pushed = true;
+      anim = { i: si, fr: nr, fc: nc, tr: r, tc: c, dur: 70 + (Math.abs(r - nr) + Math.abs(c - nc)) * 75, cw: dr + dc > 0 };
+    }
+    let player = { r: nr, c: nc };
+    const wi = P.warps.findIndex(w => w.r === nr && w.c === nc);
+    if (wi >= 0 && P.warps.length === 2) { const t = P.warps[1 - wi]; if (!occ(t.r, t.c, boxes, stones)) player = { r: t.r, c: t.c }; }
+    return { player, boxes, stones, dir, push: pushed, moved: true, anim };
+  }
+
+  deadCells(P) {
+    const live = new Set(), q = [], free = (r, c) => !this.statSolid(P, r, c);
+    P.TG.forEach(k => { live.add(k); q.push(k.split(',').map(Number)); });
+    while (q.length) {
+      const [r, c] = q.pop();
+      for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const br = r + dr, bc = c + dc, k = br + ',' + bc; if (!live.has(k) && free(br, bc) && free(r + 2 * dr, c + 2 * dc)) { live.add(k); q.push([br, bc]); } }
+    }
+    const dead = new Set();
+    for (let r = 0; r < P.H; r++) for (let c = 0; c < P.W; c++) if (free(r, c) && !live.has(r + ',' + c)) dead.add(r + ',' + c);
+    return dead;
+  }
+  checks(L) {
+    if (this._cf === L.floor && this._ct === L.top) return this._cv;
+    const P = this.parsed(L), out = [], cageMode = P.cages.length > 0;
+    const hearts = [...P.TG].map(k => { const [r, c] = k.split(',').map(Number); return { r, c }; });
+    if (!P.players.length) out.push({ k: 'error', text: 'No groom start — place @.', cells: [] });
+    if (P.players.length > 1) out.push({ k: 'error', text: P.players.length + ' groom starts — keep one.', cells: P.players });
+    if (!P.TG.size) out.push({ k: 'error', text: 'No petal hearts — place at least one x.', cells: [] });
+    else if (cageMode ? P.boxes.length > P.TG.size : P.boxes.length !== P.TG.size) out.push({ k: 'error', text: P.boxes.length + ' pushables vs ' + P.TG.size + ' hearts — ' + (cageMode ? 'too many pushables.' : 'counts must match.'), cells: [...P.boxes, ...hearts] });
+    const hcCount = {}, gcCount = {};
+    [...P.TG].forEach(k => { const col = (P.heartColor || {})[k] || 0; if (col) hcCount[col] = (hcCount[col] || 0) + 1; });
+    P.boxes.forEach(b => { const col = b.color || 0; if (col) gcCount[col] = (gcCount[col] || 0) + 1; });
+    Object.keys(hcCount).forEach(col => { if ((gcCount[col] || 0) < hcCount[col]) out.push({ k: 'error', text: (this.COLNAME[col] || ('Colour ' + col)) + ' hearts: ' + (gcCount[col] || 0) + ' matching gift(s) for ' + hcCount[col] + ' heart(s) — a colour heart needs its own colour gift.', cells: [...P.TG].filter(k => ((P.heartColor || {})[k] || 0) == col).map(k => { const [r, c] = k.split(',').map(Number); return { r, c }; }) }); });
+    if (P.warps.length && P.warps.length !== 2) out.push({ k: 'error', text: 'Warp pads come in pairs — found ' + P.warps.length + '.', cells: P.warps });
+    if (cageMode && P.TG.size > P.boxes.length + P.stones.length + 1) out.push({ k: 'warn', text: 'Cage needs ' + P.TG.size + ' hearts pressed at once, but only ' + (P.boxes.length + P.stones.length + 1) + ' things can press them.', cells: P.cages });
+    const open = [];
+    for (let r = 0; r < P.H; r++) for (let c = 0; c < P.W; c++) if ((r === 0 || c === 0 || r === P.H - 1 || c === P.W - 1) && !this.statSolid(P, r, c)) open.push({ r, c });
+    if (open.length) out.push({ k: 'warn', text: 'Edge not sealed — ' + open.length + ' open border tile' + (open.length > 1 ? 's' : '') + '.', cells: open });
+    let deadBoxes = [];
+    if (!cageMode && P.TG.size) {
+      const dead = this.deadCells(P);
+      deadBoxes = P.boxes.filter(b => dead.has(b.r + ',' + b.c));
+      if (deadBoxes.length) out.push({ k: 'warn', text: deadBoxes.length + ' pushable' + (deadBoxes.length > 1 ? 's sit' : ' sits') + ' where no push can ever reach a heart (corner or along a wall).', cells: deadBoxes });
+    }
+    if (P.player) {
+      const seen = new Set([P.player.r + ',' + P.player.c]), q = [P.player];
+      const warpTo = (r, c) => { const i = P.warps.findIndex(w => w.r === r && w.c === c); return i >= 0 && P.warps.length === 2 ? P.warps[1 - i] : null; };
+      while (q.length) { const p = q.shift(); const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => ({ r: p.r + a, c: p.c + b })); const w = warpTo(p.r, p.c); if (w) nb.push(w); nb.forEach(n => { const k = n.r + ',' + n.c; if (!seen.has(k) && !this.statSolid(P, n.r, n.c)) { seen.add(k); q.push(n); } }); }
+      const lost = [...P.boxes, ...hearts].filter(o => !seen.has(o.r + ',' + o.c));
+      if (lost.length) out.push({ k: 'warn', text: lost.length + ' gift/heart tile' + (lost.length > 1 ? 's' : '') + ' unreachable from start.', cells: lost });
+    }
+    if (cageMode) out.push({ k: 'info', text: P.brides.length ? 'Cage level · win by reaching the bride once the cage opens.' : 'Cage level · no bride, so win by stepping into an open cage.', cells: P.brides.length ? P.brides : P.cages });
+    this._cf = L.floor; this._ct = L.top;
+    this._cv = { list: out, deadBoxes, errors: out.filter(o => o.k === 'error').length };
+    return this._cv;
+  }
+
+  frozen(t, bx, solid, goal, nb) {
+    const blk = i => i < 0 || solid[i] || bx.includes(i);
+    for (const [v, h] of [[0, 2], [0, 3], [1, 2], [1, 3]]) {
+      const a = nb[t * 4 + v], b = nb[t * 4 + h], c = a >= 0 ? nb[a * 4 + h] : -1;
+      if (blk(a) && blk(b) && blk(c) && [t, a, b, c].some(i => i >= 0 && bx.includes(i) && !goal[i])) return true;
+    }
+    return false;
+  }
+  runSolve(L) {
+    const token = ++this.solveTok, sig = this.sig(L);
+    if (this.solveCache[sig]) return this.setState({ solve: this.solveCache[sig] });
+    if (this.checks(L).errors) return this.setState({ solve: { sig, status: 'skip' } });
+    const P = this.parsed(L), W = P.W, N = W * P.H;
+    const solid = new Uint8Array(N), goal = new Uint8Array(N), cage = new Uint8Array(N), adj = new Uint8Array(N), dead = new Uint8Array(N), gcol = new Uint8Array(N), ocol = new Uint8Array(N);
+    const EP = e => (e / 16) | 0, EC = e => e & 15, boxWon = e => { const p = EP(e); return goal[p] === 1 && (gcol[p] === 0 || gcol[p] === EC(e)); };
+    const twin = new Int32Array(N).fill(-1), nb = new Int32Array(N * 4).fill(-1), DR = [-1, 1, 0, 0], DC = [0, 0, -1, 1];
+    for (let r = 0; r < P.H; r++) for (let c = 0; c < W; c++) {
+      const i = r * W + c;
+      solid[i] = this.statSolid(P, r, c) ? 1 : 0; goal[i] = P.TG.has(r + ',' + c) ? 1 : 0; cage[i] = P.cageSet.has(r + ',' + c) ? 1 : 0; gcol[i] = goal[i] ? ((P.heartColor || {})[r + ',' + c] || 0) : 0;
+      for (let k = 0; k < 4; k++) { const rr = r + DR[k], cc = c + DC[k]; if (rr >= 0 && cc >= 0 && rr < P.H && cc < W) nb[i * 4 + k] = rr * W + cc; }
+    }
+    if (P.warps.length === 2) { const a = P.warps[0].r * W + P.warps[0].c, b = P.warps[1].r * W + P.warps[1].c; twin[a] = b; twin[b] = a; }
+    P.brides.forEach(b => { for (let k = 0; k < 4; k++) { const n = nb[(b.r * W + b.c) * 4 + k]; if (n >= 0) adj[n] = 1; } });
+    const cageMode = P.cages.length > 0, useBride = P.brides.length > 0;
+    if (!cageMode) this.deadCells(P).forEach(k => { const [r, c] = k.split(',').map(Number); dead[r * W + c] = 1; });
+    const goals = [], cages = []; for (let i = 0; i < N; i++) { if (goal[i]) goals.push(i); if (cage[i]) cages.push(i); }
+    const nG = goals.length, sortA = a => a.sort((x, y) => x - y), key = (pl, bx, st) => pl + '|' + bx.join(',') + '|' + st.join(',');
+    const root = { pl: P.player.r * W + P.player.c, bx: sortA(P.boxes.map(b => (b.r * W + b.c) * 16 + (b.color || 0))), st: sortA(P.stones.map(o => o.r * W + o.c)), par: -1, p: -1, k: -1 };
+    const nodes = [root], seenRaw = new Set([key(root.pl, root.bx, root.st)]), seenNorm = new Set();
+    const occ = new Uint8Array(N), vis = new Uint8Array(N), stack = new Int32Array(N), list = new Int32Array(N), LIMIT = 250000;
+    let head = 0, ticks = 0;
+    const finish = (status, idx) => {
+      if (token !== this.solveTok) return;
+      let pushes = null;
+      if (idx != null) { pushes = []; for (let j = idx; nodes[j].par >= 0; j = nodes[j].par) pushes.push({ p: nodes[j].p, k: nodes[j].k }); pushes.reverse(); }
+      const res = { sig, status, pushes, explored: head };
+      this.solveCache[sig] = res; const ks = Object.keys(this.solveCache); if (ks.length > 200) delete this.solveCache[ks[0]];
+      this.setState({ solve: res });
+    };
+    if (!cageMode && root.bx.length && root.bx.every(boxWon)) return finish('solved', 0);
+    const chunk = () => {
+      if (token !== this.solveTok) return;
+      const t0 = performance.now();
+      while (head < nodes.length) {
+        if (performance.now() - t0 > 14) { if (++ticks % 6 === 0) this.setState({ solve: { sig, status: 'running', explored: head } }); setTimeout(chunk, 0); return; }
+        if (head >= LIMIT) return finish('limit');
+        const idx = head++, nd = nodes[idx];
+        occ.fill(0); for (const b of nd.bx) { const p = EP(b); occ[p] = 1; ocol[p] = EC(b); } for (const s of nd.st) occ[s] = 2;
+        let unc = 0; for (const g of goals) { const sat = gcol[g] === 0 ? (occ[g] !== 0) : (occ[g] === 1 && ocol[g] === gcol[g]); if (!sat) unc++; }
+        let cageOcc = false; for (const g of cages) if (occ[g]) cageOcc = true;
+        const openAt = i => cageOcc || cage[i] === 1 || (nG > 0 && (unc === 0 || (unc === 1 && goal[i] === 1 && gcol[i] === 0 && !occ[i])));
+        vis.fill(0); let sp = 0, ln = 0, mn = nd.pl, win = false;
+        vis[nd.pl] = 1; stack[sp++] = nd.pl;
+        while (sp) {
+          const i = stack[--sp]; list[ln++] = i; if (i < mn) mn = i;
+          if (cageMode && (idx > 0 || i !== nd.pl) && (useBride ? adj[i] : cage[i])) win = true;
+          const open = openAt(i);
+          for (let k = 0; k < 4; k++) { const n = nb[i * 4 + k]; if (n < 0 || solid[n] || occ[n] || (cage[n] && !open)) continue; const land = twin[n] >= 0 && !occ[twin[n]] ? twin[n] : n; if (!vis[land]) { vis[land] = 1; stack[sp++] = land; } }
+        }
+        if (win) return finish('solved', idx);
+        const nk = key(mn, nd.bx, nd.st); if (seenNorm.has(nk)) continue; seenNorm.add(nk);
+        for (let li = 0; li < ln; li++) {
+          const i = list[li], open = openAt(i);
+          for (let k = 0; k < 4; k++) {
+            const n = nb[i * 4 + k]; if (n < 0) continue; const o = occ[n]; if (!o || (cage[n] && !open)) continue;
+            let bx = nd.bx, st = nd.st, t;
+            if (o === 1) {
+              t = nb[n * 4 + k]; if (t < 0 || solid[t] || occ[t] || (cage[t] && !open) || dead[t]) continue;
+              const col = ocol[n];
+              bx = sortA(nd.bx.map(b => (EP(b) === n ? t * 16 + col : b)));
+              if (!cageMode && this.frozen(t, bx.map(EP), solid, goal, nb)) continue;
+            } else {
+              t = n; for (;;) { const nx = nb[t * 4 + k]; if (nx < 0 || solid[nx] || occ[nx] || (cage[nx] && !open)) break; t = nx; }
+              if (t === n) continue;
+              st = sortA(nd.st.map(s => (s === n ? t : s)));
+            }
+            const tw = twin[n]; const pl = tw >= 0 && !(tw === t || (occ[tw] && tw !== n)) ? tw : n;
+            if (!cageMode && bx.every(boxWon)) { nodes.push({ pl, bx, st, par: idx, p: i, k }); return finish('solved', nodes.length - 1); }
+            const rk = key(pl, bx, st); if (seenRaw.has(rk)) continue; seenRaw.add(rk);
+            nodes.push({ pl, bx, st, par: idx, p: i, k });
+          }
+        }
+      }
+      finish('none');
+    };
+    this.setState({ solve: { sig, status: 'running', explored: 0 } });
+    setTimeout(chunk, 0);
+  }
+  scheduleSolve() {
+    const L = this.lvl(), sig = this.sig(L);
+    if (sig === this.wantSig) return;
+    this.wantSig = sig; clearTimeout(this.solveT); this.solveTok++;
+    if (this.solveCache[sig]) return this.setState({ solve: this.solveCache[sig] });
+    this.setState({ solve: { sig, status: 'pending' } });
+    this.solveT = setTimeout(() => this.runSolve(this.lvl()), 450);
+  }
+  buildMoves(P, pushes) {
+    const W = P.W; let s = { player: P.player, boxes: P.boxes, stones: P.stones, dir: 'down' };
+    const out = [];
+    const walk = (test) => {
+      if (test(s)) return [];
+      const k0 = st => st.player.r * W + st.player.c, seen = new Set([k0(s)]), q = [{ s, path: [] }];
+      while (q.length) {
+        const { s: cs, path } = q.shift();
+        for (const d of this.DIRS) { const ns = this.step(P, cs, d); if (!ns.moved || ns.push) continue; const np = [...path, d]; if (test(ns)) { s = ns; return np; } const k = k0(ns); if (!seen.has(k)) { seen.add(k); q.push({ s: ns, path: np }); } }
+      }
+      return null;
+    };
+    for (const { p, k } of pushes) {
+      const pr = Math.floor(p / W), pc = p % W;
+      const w = walk(st => st.player.r === pr && st.player.c === pc); if (!w) return null; out.push(...w);
+      const ns = this.step(P, s, this.DIRS[k]); if (!ns.moved) return null; out.push(this.DIRS[k]); s = ns;
+    }
+    if (P.cages.length && !this.isWon(P, s)) { const w = walk(st => this.isWon(P, st)); if (!w) return null; out.push(...w); }
+    return out;
+  }
+  watch = () => {
+    const sv = this.state.solve; if (!sv || sv.status !== 'solved') return;
+    const moves = this.buildMoves(this.parsed(this.lvl()), sv.pushes);
+    if (!moves) return this.toast('Could not replay that solution.');
+    this.stopWatch(); this.startPlay(); this.setState({ watching: true });
+    this.watchT = setInterval(() => { const d = moves.shift(); if (!d || !this.state.play) return this.stopWatch(); this.move(d); }, 150);
+  };
+  stopWatch() { if (this.watchT) { clearInterval(this.watchT); this.watchT = null; } if (this.state.watching) this.setState({ watching: false }); }
+
+  toast(text, action, run) {
+    const now = Date.now();
+    if (this.state.toast && this.state.toast.text === text && now - this.toastAt < 1500) return;
+    this.toastAt = now; clearTimeout(this.toastT);
+    this.setState({ toast: { text, action, run } });
+    this.toastT = setTimeout(() => this.setState({ toast: null }), action ? 6000 : 2200);
+  }
+  pushHist(prev, tag) {
+    const now = Date.now();
+    if (tag && this.lastTag === tag && this.lastId === prev.id && now - this.lastT < 1500) { this.lastT = now; return; }
+    this.lastTag = tag || null; this.lastT = now; this.lastId = prev.id;
+    this.setState(s => { const h = s.hist[prev.id] || { past: [], future: [] }; return { hist: { ...s.hist, [prev.id]: { past: [...h.past, prev].slice(-150), future: [] } } }; });
+  }
+  setLevel(L) { this.setState(s => { const levels = s.levels.slice(); levels[s.cur] = L; return { levels, draft: null }; }); }
+  commit(L, tag) { this.pushHist(this.lvl(), tag); this.setLevel(L); }
+  undo = () => {
+    if (this.state.play) { this.stopWatch(); return this.playUndo(); }
+    this.lastTag = null;
+    this.setState(s => { const L = s.levels[s.cur], h = s.hist[L.id]; if (!h || !h.past.length) return null; const levels = s.levels.slice(); levels[s.cur] = h.past[h.past.length - 1]; return { levels, draft: null, hist: { ...s.hist, [L.id]: { past: h.past.slice(0, -1), future: [...h.future, L] } } }; });
+  };
+  redo = () => {
+    if (this.state.play) return;
+    this.lastTag = null;
+    this.setState(s => { const L = s.levels[s.cur], h = s.hist[L.id]; if (!h || !h.future.length) return null; const levels = s.levels.slice(); levels[s.cur] = h.future[h.future.length - 1]; return { levels, draft: null, hist: { ...s.hist, [L.id]: { past: [...h.past, L], future: h.future.slice(0, -1) } } }; });
+  };
+
+  applyBrush(L, r, c, ch) {
+    const f = L.floor[r][c], t = L.top[r][c];
+    let nf = f, nt = t, floor = L.floor, top = L.top;
+    if (ch === 'erase') { if (t !== '.') nt = '.'; else nf = '.'; }
+    else if (ch === '*') { nf = 'x'; nt = '$'; }
+    else if (/^g[1-9]$/.test(ch)) { nt = ch[1]; if (f === '~') nf = '.'; }
+    else if (/^x[1-9]$/.test(ch)) { nf = ch[1]; }
+    else if (this.FLOORS.includes(ch)) { nf = ch; if (ch === '~') nt = '.'; }
+    else { nt = ch; if (f === '~') nf = '.'; }
+    if (nf === f && nt === t) return null;
+    if (nf === 'o' && f !== 'o' && this.parsed(L).warps.length >= 2) { this.toast('Warp pads come in pairs — max 2 per level.'); return null; }
+    if (nt === '@' && t !== '@') top = top.map(row => row.replace(/@/g, '.'));
+    const put = (rows, v) => { const o = rows.slice(); o[r] = o[r].slice(0, c) + v + o[r].slice(c + 1); return o; };
+    if (nf !== f) floor = put(floor, nf);
+    if (nt !== t) top = put(top, nt);
+    return { floor, top };
+  }
+  fill(L, p, ch) {
+    const lay = (/^x[1-9]$/.test(ch) || this.FLOORS.includes(ch)) ? 'floor' : 'top', src = L[lay][p.r][p.c], f0 = L.floor[p.r][p.c];
+    const seen = new Set([p.r + ',' + p.c]), q = [p], cells = [];
+    while (q.length) {
+      const a = q.pop(); cells.push(a);
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dr, dc]) => {
+        const r = a.r + dr, c = a.c + dc, k = r + ',' + c;
+        if (r < 0 || c < 0 || r >= L.h || c >= L.w || seen.has(k) || L[lay][r][c] !== src) return;
+        if (lay === 'floor' ? '#fQ'.includes(L.top[r][c]) : L.floor[r][c] !== f0) return;
+        seen.add(k); q.push({ r, c });
+      });
+    }
+    let cur = L; cells.forEach(({ r, c }) => { const res = this.applyBrush(cur, r, c, ch); if (res) cur = { ...cur, ...res }; });
+    return cur;
+  }
+  line(a, b) {
+    const out = [], dr = Math.abs(b.r - a.r), dc = Math.abs(b.c - a.c), sr = a.r < b.r ? 1 : -1, sc = a.c < b.c ? 1 : -1;
+    let r = a.r, c = a.c, err = dc - dr;
+    for (;;) { out.push({ r, c }); if (r === b.r && c === b.c) break; const e2 = 2 * err; if (e2 > -dr) { err -= dr; c += sc; } if (e2 < dc) { err += dc; r += sr; } }
+    return out;
+  }
+  cellAt(e) {
+    const cv = this.canvasRef.current; if (!cv) return null;
+    const b = cv.getBoundingClientRect(), L = this.lvl(), z = 16 * this.state.zoom;
+    const c = Math.floor((e.clientX - b.left) / z), r = Math.floor((e.clientY - b.top) / z);
+    return r >= 0 && c >= 0 && r < L.h && c < L.w ? { r, c } : null;
+  }
+  paint(p, first) {
+    const s = this.state, L = this.work || this.lvl();
+    if (s.tool === 'pick') { if (first) { const f = L.floor[p.r][p.c], t = L.top[p.r][p.c]; const td = t >= '1' && t <= '9', fd = f >= '1' && f <= '9'; this.setState({ brush: td ? 'g' + t : t === '$' && f === 'x' ? '*' : t !== '.' ? t : fd ? 'x' + f : f, tool: 'brush' }); } return; }
+    const ch = s.tool === 'erase' || this.right ? 'erase' : s.brush;
+    let next = null;
+    if (s.tool === 'fill' && ch !== 'erase') {
+      if (!first) return;
+      if (!'@o'.includes(ch)) next = this.fill(L, p, ch);
+      else this.toast(this.NAME[ch] + ' is placed singly, not filled.');
+    }
+    if (!next) { const res = this.applyBrush(L, p.r, p.c, ch); if (res) next = { ...L, ...res }; }
+    if (next && next !== L) { this.work = next; this.setLevel(next); }
+  }
+  onDown = (e) => {
+    const ae = document.activeElement; if (ae && ae !== document.body && ae.blur) ae.blur();
+    if (this.state.play) { this.sw = { x: e.clientX, y: e.clientY }; return; }
+    e.preventDefault(); const p = this.cellAt(e); if (!p) return;
+    this.down = true; this.right = e.button === 2; this.snap = this.work = this.lvl(); this.lastP = p;
+    this.paint(p, true);
+  };
+  onMove = (e) => {
+    if (this.down && !e.buttons) this.endStroke();
+    const p = this.cellAt(e), h = this.state.hover;
+    if ((p && (!h || h.r !== p.r || h.c !== p.c)) || (!p && h)) this.setState({ hover: p });
+    if (this.down && p && !this.state.play) { const a = this.lastP || p; this.line(a, p).slice(a === p ? 0 : 1).forEach(q => this.paint(q, false)); this.lastP = p; }
+  };
+  onLeave = () => { this.lastP = null; this.setState({ hover: null }); };
+  endStroke() { if (!this.down) return; this.down = false; const snap = this.snap, changed = this.work && this.work !== snap; this.snap = this.work = this.lastP = null; if (changed) this.pushHist(snap); }
+  onCtx = (e) => e.preventDefault();
+  onUp = (e) => {
+    if (this.sw) { const dx = e.clientX - this.sw.x, dy = e.clientY - this.sw.y; this.sw = null; this.swipe(dx, dy); }
+    this.endStroke();
+  };
+  onTouchStart = (e) => { if (!this.state.play) return; const t = e.touches[0]; this.sw = { x: t.clientX, y: t.clientY }; };
+  onTouchEnd = (e) => { if (!this.sw) return; const t = e.changedTouches[0]; const dx = t.clientX - this.sw.x, dy = t.clientY - this.sw.y; this.sw = null; this.swipe(dx, dy); };
+  swipe(dx, dy) {
+    if (!this.state.play || Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    this.stopWatch();
+    this.move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  }
+
+  edge(side, d) {
+    if (this.state.play) return;
+    const L = this.lvl(); let { w, h, floor, top } = L;
+    if (side === 'top' || side === 'bottom') {
+      const nh = h + d; if (nh < 4 || nh > 30) return this.toast('Height must stay between 4 and 30.');
+      const row = '.'.repeat(w), f = rows => (d > 0 ? (side === 'top' ? [row, ...rows] : [...rows, row]) : side === 'top' ? rows.slice(1) : rows.slice(0, -1));
+      floor = f(floor); top = f(top); h = nh;
+    } else {
+      const nw = w + d; if (nw < 4 || nw > 24) return this.toast('Width must stay between 4 and 24.');
+      const f = rows => rows.map(r => (d > 0 ? (side === 'left' ? '.' + r : r + '.') : side === 'left' ? r.slice(1) : r.slice(0, -1)));
+      floor = f(floor); top = f(top); w = nw;
+    }
+    this.commit({ ...L, w, h, floor, top });
+  }
+  shift(dr, dc) {
+    if (this.state.play) return;
+    const L = this.lvl(), mv = rows => Array.from({ length: L.h }, (_, r) => Array.from({ length: L.w }, (_, c) => { const sr = r - dr, sc = c - dc; return sr >= 0 && sc >= 0 && sr < L.h && sc < L.w ? rows[sr][sc] : '.'; }).join(''));
+    this.commit({ ...L, floor: mv(L.floor), top: mv(L.top) });
+  }
+
+  selectLevel(i) { this.stopWatch(); this.anim = null; this.cageA = null; this.setState({ cur: i, play: null, draft: null, flash: null, hover: null, applyErr: '' }); }
+  blankLevel(name) { const w = 11, h = 18; return { id: this.uid(), name, w, h, lighting: 'day', wallStyle: 'hedge', floor: Array(h).fill('.'.repeat(w)), top: Array.from({ length: h }, (_, r) => (r === 0 || r === h - 1 ? '#'.repeat(w) : '#' + '.'.repeat(w - 2) + '#')) }; }
+  newLevel = () => { this.stopWatch(); this.setState(s => ({ levels: [...s.levels, this.blankLevel('Untitled ' + (s.levels.length + 1))], cur: s.levels.length, play: null, draft: null })); };
+  dupLevel = () => { this.stopWatch(); this.setState(s => { const L = s.levels[s.cur]; const levels = s.levels.slice(); levels.splice(s.cur + 1, 0, { ...L, id: this.uid(), name: L.name + ' copy' }); return { levels, cur: s.cur + 1, play: null, draft: null }; }); };
+  delLevel = () => {
+    const s = this.state; if (s.levels.length < 2) return;
+    this.stopWatch();
+    const L = s.levels[s.cur], at = s.cur;
+    this.setState({ levels: s.levels.filter((_, i) => i !== at), cur: Math.min(at, s.levels.length - 2), play: null, draft: null });
+    this.toast('Deleted “' + (L.name || 'Untitled') + '”.', 'Undo', () => { this.setState(st => { const levels = st.levels.slice(); levels.splice(at, 0, L); return { levels, cur: at, toast: null }; }); });
+  };
+  moveLevel(d) { this.setState(s => { const j = s.cur + d; if (j < 0 || j >= s.levels.length) return null; const levels = s.levels.slice(); [levels[s.cur], levels[j]] = [levels[j], levels[s.cur]]; return { levels, cur: j }; }); }
+
+  startPlay() {
+    const P = this.parsed(this.lvl()); if (!P.player) return this.toast('Place a groom start (@) to playtest.');
+    this.playP = P; this.anim = null; this.cageA = null;
+    this.setState({ play: { player: P.player, boxes: P.boxes, stones: P.stones, dir: 'down', push: false, hist: [], won: false } });
+  }
+  togglePlay = () => { this.stopWatch(); if (this.state.play) { this.anim = null; this.cageA = null; this.setState({ play: null }); } else this.startPlay(); };
+  replay = () => { this.stopWatch(); this.startPlay(); };
+  playUndo() { this.anim = null; this.setState(s => { const h = s.play.hist; if (!h.length) return null; return { play: { ...s.play, ...h[h.length - 1], push: false, won: false, hist: h.slice(0, -1) } }; }); }
+  move(dir) {
+    const s = this.state.play; if (!s || s.won) return;
+    const ns = this.step(this.playP, s, dir);
+    if (!ns.moved) return this.setState(st => ({ play: { ...st.play, dir, push: ns.push } }));
+    if (ns.anim) this.anim = { ...ns.anim, start: performance.now() };
+    const won = this.isWon(this.playP, ns);
+    this.setState(st => ({ play: { player: ns.player, boxes: ns.boxes, stones: ns.stones, dir, push: ns.push, won, hist: [...st.play.hist, { player: s.player, boxes: s.boxes, stones: s.stones, dir: s.dir }] } }));
+  }
+
+  toJSON(L) {
+    const arr = rows => '[\n' + rows.map(r => '    ' + JSON.stringify(r)).join(',\n') + '\n  ]';
+    return '{\n  "name": ' + JSON.stringify(L.name) + ',\n  "lighting": "' + L.lighting + '",\n  "wallStyle": "' + L.wallStyle + '",\n  "floor": ' + arr(L.floor) + ',\n  "map": ' + arr(L.top) + '\n}';
+  }
+  fromJSON(o) {
+    const r = {};
+    if (typeof o.name === 'string' && o.name) r.name = o.name.slice(0, 32);
+    if (o.lighting) r.lighting = o.lighting; if (o.wallStyle) r.wallStyle = o.wallStyle;
+    if (Array.isArray(o.floor) && Array.isArray(o.map)) { r.floor = o.floor.map(String); r.top = o.map.map(String); }
+    else Object.assign(r, this.split((Array.isArray(o.map) ? o.map : []).map(String)));
+    return r;
+  }
+  applyDraft = () => {
+    const txt = this.state.draft; if (txt == null || this.state.play) return;
+    let o = null; try { o = JSON.parse(txt); } catch (e) {}
+    if (Array.isArray(o)) {
+      const add = o.filter(x => x && typeof x === 'object').map(x => this.fromJSON(x)).filter(x => x.top.length).map(x => ({ ...this.normalize(x), id: this.uid() }));
+      if (!add.length) return this.setState({ applyErr: 'No levels found in array' });
+      this.setState(s => ({ levels: [...s.levels, ...add], cur: s.levels.length, play: null, draft: null, applyErr: '' }));
+      return this.toast('Imported ' + add.length + ' level' + (add.length > 1 ? 's' : '') + ' at the end of the list.');
+    }
+    const src = o && typeof o === 'object' ? this.fromJSON(o) : this.split(txt.split('\n').map(r => r.replace(/\s+$/, '')).filter(r => r.length));
+    if (!src.top || !src.top.length) return this.setState({ applyErr: 'Could not read a map' });
+    const L = this.lvl();
+    this.commit({ ...this.normalize({ ...L, ...src }), id: L.id }); this.setState({ applyErr: '' });
+  };
+  copyJson = () => {
+    const t = this.state.draft ?? this.toJSON(this.lvl());
+    const done = ok => { this.setState({ copied: ok ? 'Copied' : 'Copy failed' }); clearTimeout(this.ct); this.ct = setTimeout(() => this.setState({ copied: false }), 1400); };
+    const legacy = () => { const ta = document.createElement('textarea'); ta.value = t; ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); return ok; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => done(true), () => done(legacy())); else done(legacy());
+  };
+  downloadAll = () => {
+    const data = '[\n' + this.state.levels.map(l => this.toJSON(l).replace(/^/gm, '  ')).join(',\n') + '\n]\n';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' })); a.download = 'levels.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  onKey = (e) => {
+    if (e.target && /input|textarea/i.test(e.target.tagName)) return;
+    const k = e.key, lk = k.toLowerCase(), mod = e.metaKey || e.ctrlKey;
+    if (this.state.play) {
+      if (this.watchT) this.stopWatch();
+      const map = { arrowup: 'up', w: 'up', arrowdown: 'down', s: 'down', arrowleft: 'left', a: 'left', arrowright: 'right', d: 'right' };
+      if (map[lk]) { e.preventDefault(); this.stopWatch(); this.move(map[lk]); }
+      else if (lk === 'z') { this.stopWatch(); this.playUndo(); }
+      else if (lk === 'r') this.replay();
+      else if (k === 'Escape' || lk === 'p') this.togglePlay();
+      return;
+    }
+    if (mod && lk === 'z') { e.preventDefault(); return e.shiftKey ? this.redo() : this.undo(); }
+    if (mod && lk === 'y') { e.preventDefault(); return this.redo(); }
+    if (e.altKey && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); return this.moveLevel(k === 'ArrowUp' ? -1 : 1); }
+    if (e.shiftKey && k.startsWith('Arrow')) { e.preventDefault(); const [dr, dc] = this.D[k.slice(5).toLowerCase()]; return this.shift(dr, dc); }
+    if (mod || e.altKey) return;
+    if (k >= '1' && k <= '4') return this.setState({ brush: 'g' + k, tool: 'brush' });
+    if (this.NAME[k]) return this.setState({ brush: k, tool: 'brush' });
+    const tools = { b: 'brush', e: 'erase', g: 'fill', i: 'pick' };
+    if (tools[k]) return this.setState({ tool: tools[k] });
+    if (k === 'p') return this.startPlay();
+    if (k === '[' || k === '-') this.setState(s => ({ zoom: Math.max(1, s.zoom - 1) }));
+    if (k === ']' || k === '+') this.setState(s => ({ zoom: Math.min(5, s.zoom + 1) }));
+  };
+
+  componentDidMount() {
+    this._savedLevels = this.state.levels;
+    window.addEventListener('keydown', this.onKey); window.addEventListener('mouseup', this.onUp);
+    const tick = (t) => { this.lastDraw = performance.now(); try { this.draw(t); } catch (e) { if (!this._errLogged) { this._errLogged = true; console.error('draw failed: ' + (e && e.message)); } } };
+    const loop = (t) => { this.raf = requestAnimationFrame(loop); tick(t); };
+    this.raf = requestAnimationFrame(loop);
+    this.fallback = setInterval(() => { if (performance.now() - (this.lastDraw || 0) > 120) tick(performance.now()); }, 100);
+    tick(performance.now());
+    this.scheduleSolve();
+  }
+  componentDidUpdate() {
+    const lv = this.state.levels;
+    if (lv !== this._savedLevels) { this._savedLevels = lv; try { localStorage.setItem(this.KEY, JSON.stringify(lv)); } catch (e) {} }
+    if (!this.down) this.scheduleSolve();
+    try { this.draw(performance.now()); } catch (e) {}
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); window.removeEventListener('mouseup', this.onUp); cancelAnimationFrame(this.raf); clearInterval(this.fallback); clearTimeout(this.solveT); this.solveTok++; this.stopWatch(); }
+
+  draw(t) {
+    const cv = this.canvasRef.current; if (!cv) return;
+    const x = cv.getContext('2d'), C = this.C, s = this.state, L = this.lvl(), fr = Math.floor(t / 650) % 2;
+    x.imageSmoothingEnabled = false; x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    x.clearRect(0, 0, cv.width, cv.height);
+    const P = s.play ? this.playP : this.parsed(L), st = s.play || P, F = P.floor, T = P.top, TG = P.TG;
+    const wk = this.wallKey(L.wallStyle), at = (k, r, c) => x.drawImage(C[k], c * 16, r * 16);
+    const occ = new Set([...st.boxes, ...st.stones, ...(s.play ? [st.player] : P.players)].map(o => o.r + ',' + o.c));
+    for (let r = 0; r < P.H; r++) for (let c = 0; c < P.W; c++) {
+      const f = F[r][c];
+      if (f === '~') { at('water' + fr, r, c); if (r === 0 || F[r - 1][c] !== '~') at('bank', r, c); continue; }
+      at(f === '=' ? 'carpet' : f === '_' ? 'stone' : (r + c) % 2 ? 'grassB' : 'grassA', r, c);
+      if (r > 0 && '#fQ'.includes(T[r - 1][c]) && !'#fQ'.includes(T[r][c])) at('wallShadow', r, c);
+      if (f === 'x' || (f >= '1' && f <= '9')) { if (occ.has(r + ',' + c)) { at('platePit', r, c); at('plateFaceDarkS', r, c); } else { at('plateLip', r, c); at('plateFace', r, c); } if (f >= '1' && f <= '9') { x.strokeStyle = this.COLHEX[+f] || '#888'; x.lineWidth = 2; x.strokeRect(c * 16 + 1, r * 16 + 1, 14, 14); } }
+      if (f === 'o') at('warp' + fr, r, c);
+    }
+    for (let r = 0; r < P.H; r++) for (let c = 0; c < P.W; c++) {
+      const ch = T[r][c];
+      if (ch === '#') at(wk, r, c); else if (ch === 'f') at('fence', r, c); else if (ch === 'Q') at('brick', r, c);
+      else if (ch === 'h') { at('shadow', r, c); at('chair', r, c); } else if (ch === 'l') { at('shadow', r, c); at('lantern', r, c); } else if (ch === 'B') { at('shadow', r, c); at('bride', r, c); }
+    }
+    if (P.cages.length) {
+      const open = this.cageOpen(P, s.play ? st : { ...P, player: null }), A = this.cageA || (this.cageA = { open, t: -1e9 });
+      if (A.open !== open) { A.open = open; A.t = t; }
+      const q = Math.min(1, Math.max(0, (t - A.t) / 220)), e = 1 - (1 - q) * (1 - q), off = Math.round((open ? e : 1 - e) * 12);
+      P.cages.forEach(g => { at('cageBase', g.r, g.c); if (off < 12) { x.save(); x.beginPath(); x.rect(g.c * 16, g.r * 16, 16, 12); x.clip(); x.drawImage(C.cageBars, g.c * 16, g.r * 16 + off); x.restore(); } });
+    }
+    const gA = 0.8 + 0.2 * Math.sin(t / 380), glow = (k, px, py) => { x.globalAlpha = gA; x.drawImage(C[k + 'Glow'], px, py); x.globalAlpha = 1; };
+    st.stones.forEach((o, i) => {
+      let px = o.c * 16, py = o.r * 16, fk = 'boulder'; const A = this.anim;
+      if (s.play && A && A.i === i && A.tr === o.r && A.tc === o.c && t < A.start + A.dur) {
+        const q = Math.max(0, (t - A.start) / A.dur), e = 1 - (1 - q) * (1 - q);
+        const fx = A.fc * 16 + (A.tc - A.fc) * 16 * e, fy = A.fr * 16 + (A.tr - A.fr) * 16 * e;
+        const n = Math.floor((Math.abs(fx - A.fc * 16) + Math.abs(fy - A.fr * 16)) / 4) % 4, idx = A.cw ? n : (4 - n) % 4;
+        px = Math.round(fx); py = Math.round(fy); fk = idx ? 'boulder' + idx : 'boulder';
+      }
+      x.drawImage(C.shadow, px, py); glow('boulder', px, py); x.drawImage(C[fk], px, py);
+    });
+    P.warps.forEach(w => { if (!occ.has(w.r + ',' + w.c)) at('warpFx' + fr, w.r, w.c); });
+    st.boxes.forEach(b => {
+      const on = TG.has(b.r + ',' + b.c), bx = b.c * 16, by = b.r * 16 + (on ? 2 : 0);
+      x.drawImage(C.shadow, bx, by); if (!on) glow(b.kind, bx, by); x.drawImage(C[b.kind + (on ? 'On' : '')], bx, by);
+      if (b.color) { x.strokeStyle = this.COLHEX[b.color] || '#888'; x.lineWidth = 2; x.strokeRect(bx + 1, b.r * 16 + 1, 14, 14); }
+      if (on) at('sparkle', b.r, b.c);
+    });
+    (s.play ? [st.player] : P.players).forEach(p => {
+      const d = s.play ? st.dir : 'down';
+      const pk = d === 'up' ? 'groomUp' : d === 'down' ? 'groomDown' : (st.push ? 'groomPush' : 'groom') + (d === 'left' ? 'Left' : 'Right');
+      const py = p.r * 16 + (TG.has(p.r + ',' + p.c) ? 2 : 0); x.drawImage(C.shadow, p.c * 16, py); x.drawImage(C[pk], p.c * 16, py);
+    });
+    const light = L.lighting || 'day';
+    if (light !== 'day') {
+      x.globalCompositeOperation = 'multiply'; x.fillStyle = light === 'golden' ? 'rgba(255,190,130,0.45)' : 'rgba(70,55,140,0.6)'; x.fillRect(0, 0, cv.width, cv.height);
+      x.globalCompositeOperation = 'screen';
+      if (light === 'golden') { const g = x.createLinearGradient(0, 0, cv.width, cv.height); g.addColorStop(0, 'rgba(255,200,120,0.35)'); g.addColorStop(1, 'rgba(255,200,120,0)'); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.height); }
+      else for (let r = 0; r < P.H; r++) for (let c = 0; c < P.W; c++) { if (T[r][c] !== 'l') continue; const cx = c * 16 + 8, cy = r * 16 + 6, g = x.createRadialGradient(cx, cy, 2, cx, cy, 34); g.addColorStop(0, 'rgba(255,214,130,0.75)'); g.addColorStop(1, 'rgba(255,214,130,0)'); x.fillStyle = g; x.fillRect(cx - 34, cy - 34, 68, 68); }
+      x.globalCompositeOperation = 'source-over';
+    }
+    if (s.play) return;
+    x.lineWidth = 1;
+    if (this.props.markDeadlocks ?? true) { x.strokeStyle = '#e0507a'; this.checks(L).deadBoxes.forEach(b => { x.strokeRect(b.c * 16 + 0.5, b.r * 16 + 0.5, 15, 15); x.beginPath(); x.moveTo(b.c * 16 + 11, b.r * 16 + 1); x.lineTo(b.c * 16 + 15, b.r * 16 + 5); x.moveTo(b.c * 16 + 15, b.r * 16 + 1); x.lineTo(b.c * 16 + 11, b.r * 16 + 5); x.stroke(); }); }
+    if (s.flash && t - s.flash.t < 1800) {
+      const a = 0.5 + 0.5 * Math.sin((t - s.flash.t) / 90);
+      s.flash.cells.forEach(p => { x.fillStyle = 'rgba(246,201,79,' + (0.45 * a) + ')'; x.fillRect(p.c * 16, p.r * 16, 16, 16); x.strokeStyle = '#f6c94f'; x.strokeRect(p.c * 16 + 0.5, p.r * 16 + 0.5, 15, 15); });
+    }
+    const h = s.hover;
+    if (h && h.r < P.H && h.c < P.W) {
+      if ((this.props.brushGhost ?? true) && s.tool === 'brush') { x.globalAlpha = 0.6; x.drawImage(this.thumb(s.brush, L.wallStyle).cv, h.c * 16, h.r * 16); x.globalAlpha = 1; }
+      x.strokeStyle = s.tool === 'erase' ? '#e0507a' : '#fffaf4'; x.strokeRect(h.c * 16 + 0.5, h.r * 16 + 0.5, 15, 15);
+    }
+  }
+
+  renderVals() {
+    const s = this.state, L = this.lvl(), ck = this.checks(L), P = this.parsed(L), playing = !!s.play, sig = this.sig(L);
+    const ink = '#3a2433', veil = '#fffaf4';
+    const tools = [['brush', 'Brush', 'B'], ['erase', 'Erase', 'E'], ['fill', 'Fill', 'G'], ['pick', 'Pick', 'I']].map(([id, label, key]) => {
+      const on = s.tool === id;
+      return { label, key, tip: label + ' (' + key + ')', bg: on ? ink : veil, fg: on ? veil : ink, keyColor: on ? '#f7a1bd' : '#a8325a', select: () => this.setState({ tool: id }) };
+    });
+    const palette = this.BRUSHES.map(g => ({ name: g.g, items: g.items.map(([ch, name]) => {
+      const on = s.brush === ch && s.tool === 'brush';
+      return { ch, name, tip: name + '  ·  ' + ch, src: this.thumb(ch, L.wallStyle).url, bg: on ? ink : '#f3e9e1', border: on ? ink : '#f3e9e1', keyColor: on ? '#f7a1bd' : '#a8325a', pick: () => this.setState({ brush: ch, tool: 'brush' }) };
+    }) }));
+    const seg = (key, opts) => opts.map(v => ({ label: v, bg: L[key] === v ? ink : 'transparent', fg: L[key] === v ? veil : ink, select: () => this.commit({ ...L, [key]: v }) }));
+    const sv = s.solve && s.solve.sig === sig ? s.solve : null;
+    let solveItem = null;
+    if (sv) {
+      if (sv.status === 'pending' || sv.status === 'running') solveItem = { k: 'info', text: 'Checking solvability…' + (sv.explored ? ' ' + (sv.explored >= 1000 ? Math.round(sv.explored / 1000) + 'k' : sv.explored) + ' positions' : ''), cells: [] };
+      else if (sv.status === 'solved') solveItem = { k: 'ok', text: 'Solvable — click to watch the solution.', run: this.watch };
+      else if (sv.status === 'none') solveItem = { k: 'error', text: 'No solution — this level can’t be finished.', cells: [] };
+      else if (sv.status === 'limit') solveItem = { k: 'warn', text: 'Too big to prove — solver stopped at 250k positions. Playtest to confirm.', cells: [] };
+      else if (sv.status === 'skip') solveItem = { k: 'info', text: 'Solver waits until the errors above are fixed.', cells: [] };
+    }
+    const list = [...ck.list];
+    if (solveItem) { if (sv.status === 'skip') list.push(solveItem); else list.unshift(solveItem); }
+    const tone = { error: ['#fde3ea', '#e0507a'], warn: ['#fbefd6', '#c98c2c'], ok: ['#e5f2dc', '#4f9e45'], info: ['#efe8f4', '#9c86b4'] };
+    const issues = list.map(o => ({ text: o.text, bg: tone[o.k][0], dot: tone[o.k][1], locate: () => (o.run ? o.run() : o.cells && o.cells.length && this.setState({ flash: { cells: o.cells, t: performance.now() } })) }));
+    const hv = s.hover && s.hover.r < L.h && s.hover.c < L.w ? s.hover : null;
+    const hist = s.hist[L.id] || { past: [], future: [] };
+    const canUndo = playing ? s.play.hist.length > 0 : hist.past.length > 0, canRedo = !playing && hist.future.length > 0;
+    const btnSt = on => (on ? { bg: veil, border: ink, shadow: '0 2px 0 #3a2433', op: 1, cursor: 'pointer' } : { bg: '#f3e9e1', border: '#d9c9c4', shadow: 'none', op: 0.3, cursor: 'default' });
+    const zoom = s.zoom;
+    const edgeRow = (label, side) => ({ label, minus: () => this.edge(side, -1), plus: () => this.edge(side, 1), minusLabel: 'Remove ' + label.toLowerCase() + ' row/column', plusLabel: 'Add ' + label.toLowerCase() + ' row/column' });
+    const cn = (ch, kind) => ch >= '1' && ch <= '9' ? (this.COLNAME[+ch] || ('Colour ' + ch)) + ' ' + kind : null;
+    const hoverText = hv ? (() => { const f = L.floor[hv.r][hv.c], t = L.top[hv.r][hv.c]; const fn = cn(f, 'heart') || this.NAME[f]; const tn = cn(t, 'gift') || this.NAME[t] || t; return 'col ' + hv.c + ' · row ' + hv.r + ' · ' + fn + (t !== '.' ? ' + ' + tn : ''); })() : null;
+    return {
+      ...this.icons(), canvasRef: this.canvasRef, tools, palette, issues,
+      brushName: (this.NAME[s.brush] || s.brush) + '  ' + s.brush, brushLayer: s.brush === '*' ? 'floor + map' : (/^x[1-9]$/.test(s.brush) || this.FLOORS.includes(s.brush)) ? 'floor layer' : 'map layer',
+      cw: L.w * 16, ch: L.h * 16, cssW: L.w * 16 * zoom, cssH: L.h * 16 * zoom, cell: 16 * zoom, zoom,
+      cursor: playing ? 'grab' : s.tool === 'pick' ? 'copy' : 'crosshair',
+      showGrid: (this.props.showGrid ?? true) && !playing,
+      onDown: this.onDown, onMove: this.onMove, onLeave: this.onLeave, onCtx: this.onCtx, onTouchStart: this.onTouchStart, onTouchEnd: this.onTouchEnd,
+      undo: this.undo, redo: this.redo, undoSt: btnSt(canUndo), redoSt: btnSt(canRedo),
+      zoomIn: () => this.setState({ zoom: Math.min(5, zoom + 1) }), zoomOut: () => this.setState({ zoom: Math.max(1, zoom - 1) }),
+      editOpacity: playing ? 0.45 : 1,
+      togglePlay: this.togglePlay, playLabel: playing ? 'STOP' : 'PLAYTEST', playKey: playing ? 'Esc' : 'P', playBg: playing ? ink : P.player ? '#e0507a' : '#c3bec9',
+      levelList: s.levels.map((l, i) => ({ num: String(i + 1).padStart(2, '0'), name: l.name || 'Untitled', size: l.w + '×' + l.h, bg: i === s.cur ? ink : 'transparent', fg: i === s.cur ? veil : ink, numColor: i === s.cur ? '#f7a1bd' : '#a8325a', select: () => this.selectLevel(i) })),
+      newLevel: this.newLevel, dupLevel: this.dupLevel, delLevel: this.delLevel, delOpacity: s.levels.length > 1 ? 1 : 0.4,
+      levelUp: () => this.moveLevel(-1), levelDown: () => this.moveLevel(1), upOpacity: s.cur > 0 ? 1 : 0.35, downOpacity: s.cur < s.levels.length - 1 ? 1 : 0.35,
+      lvName: L.name, setName: (e) => this.commit({ ...L, name: e.target.value.slice(0, 32) }, 'name'),
+      lvW: L.w, lvH: L.h, edges: [edgeRow('Top', 'top'), edgeRow('Bottom', 'bottom'), edgeRow('Left', 'left'), edgeRow('Right', 'right')],
+      shiftU: () => this.shift(-1, 0), shiftD: () => this.shift(1, 0), shiftL: () => this.shift(0, -1), shiftR: () => this.shift(0, 1),
+      lightOpts: seg('lighting', this.LIGHTS), wallOpts: seg('wallStyle', this.WALLS),
+      won: playing && s.play.won, replay: this.replay,
+      hasToast: !!s.toast, toastText: s.toast ? s.toast.text : '', toastAction: s.toast ? s.toast.action || '' : '', toastRun: () => s.toast && s.toast.run && s.toast.run(),
+      statusLeft: playing ? (s.watching ? 'Watching solution · any key to take over' : 'Playtest · arrows/WASD or swipe · Z undo · R restart · Esc stop') : hoverText || 'Left-drag paints · right-drag erases · ⌘Z undo · ⇧+arrows shift · [ ] zoom',
+      statusRight: P.boxes.length + ' pushables · ' + P.TG.size + ' hearts · ' + P.stones.length + ' stones' + (P.cages.length ? ' · ' + P.cages.length + ' cage' + (P.cages.length > 1 ? 's' : '') : '') + (ck.errors ? ' · ' + ck.errors + ' error' + (ck.errors > 1 ? 's' : '') : ''),
+      exportText: s.draft ?? this.toJSON(L), setDraft: (e) => this.setState({ draft: e.target.value, applyErr: '' }),
+      exportNote: s.applyErr || (s.draft != null ? 'edited · not applied' : 'live'), exportNoteColor: s.applyErr || s.draft != null ? '#a8325a' : '#6e5664',
+      applyOpacity: s.draft != null ? 1 : 0.4, applyDraft: this.applyDraft, copyJson: this.copyJson, copyLabel: s.copied || 'Copy', downloadAll: this.downloadAll
+    };
+  }
+}
+</script>
+</body>
+</html>
