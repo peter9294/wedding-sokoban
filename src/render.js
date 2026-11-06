@@ -19,12 +19,16 @@ export class Renderer {
     this.C = sprites;
     this.press = {};   // per-heart sink animation: "r,c" -> {d, t}
     this.cageA = null; // cage open/close animation
+    // Transient motion set by the game on a move; read here, never persisted.
+    this.pA = null;       // player step/warp tween {fr, fc, start, dur, warp}
+    this.bA = null;       // pushed-box tween {i, fr, fc, start, dur}
+    this.confetti = null; // win burst {t, ps:[...]}
     this.initials = { bride: 'A', groom: 'P' }; // overridden from config by the game
     this._badges = {};
   }
 
   // Call when switching to a new level so animations don't carry over.
-  reset() { this.press = {}; this.cageA = null; }
+  reset() { this.press = {}; this.cageA = null; this.pA = this.bA = this.confetti = null; }
 
   // ctx: 2d context sized w*16 x h*16. anim: stone-slide descriptor or null.
   draw(ctx, level, state, t, anim) {
@@ -79,7 +83,7 @@ export class Renderer {
       else if (chx === 'f') at('fence', r, c);
       else if (chx === 'h') { at('shadow', r, c); at('chair', r, c); }
       else if (chx === 'l') { at('shadow', r, c); at('lantern', r, c); }
-      else if (chx === 'B') { at('shadow', r, c); at('bride', r, c); }
+      else if (chx === 'B') { at('shadow', r, c); ctx.drawImage(C.bride, c * 16, r * 16 - (Math.floor((t + 260) / 520) % 2)); }
       else if (chx === 'Q') at('brick', r, c);
     }));
 
@@ -117,23 +121,42 @@ export class Renderer {
     // Warp sparkles (not on the tile the player occupies).
     level.WARPS.forEach((w) => { if (!(s.player.r === w.r && s.player.c === w.c)) at('warpFx' + frame, w.r, w.c); });
 
-    // Boxes (gift/cake) — gold + sparkle when correctly placed, cyan glow when not.
-    s.boxes.forEach((b) => {
+    // Ease-out tween helper: interpolated top-left for a {fr,fc,start,dur} anim,
+    // or null once it has finished (so the object snaps to its logical cell).
+    const tw = (A, cx, cy) => {
+      if (!A || t >= A.start + A.dur) return null;
+      const q = Math.max(0, (t - A.start) / A.dur), e = 1 - (1 - q) * (1 - q);
+      return { q, x: Math.round(A.fc * 16 + (cx - A.fc * 16) * e), y: Math.round(A.fr * 16 + (cy - A.fr * 16) * e) };
+    };
+
+    // Boxes (gift/cake) — gold + twinkle when correctly placed, cyan glow when not.
+    s.boxes.forEach((b, i) => {
       const placed = level.boxPlaced(b);
-      const by = b.r * 16 + sinkPx(b.r, b.c), bx = b.c * 16;
+      let by = b.r * 16 + sinkPx(b.r, b.c), bx = b.c * 16;
+      const m = this.bA && this.bA.i === i ? tw(this.bA, bx, by) : null;
+      if (m) { bx = m.x; by = m.y; }
       ctx.drawImage(C.shadow, bx, by);
       if (!placed) glow(b.kind, bx, by);
       const key = placed ? (b.kind + 'On') : (b.color ? 'gift' + b.color : b.kind);
       ctx.drawImage(C[key] || C[b.kind], bx, by);
-      if (placed) at('sparkle', b.r, b.c);
+      if (placed && !m && Math.floor((t + (b.r * 7 + b.c * 13) * 61) / 240) % 4 !== 3) at('sparkle', b.r, b.c);
     });
 
-    // Groom.
+    // Groom (step tween + 2px hop, warp scale, idle bob when still).
     const d = s.dir;
     const pk = d === 'up' ? 'groomUp' : d === 'down' ? 'groomDown' : (s.push ? 'groomPush' : 'groom') + (d === 'left' ? 'Left' : 'Right');
+    let groomDrawX = s.player.c * 16, groomDrawY = s.player.r * 16;
     {
-      const py = s.player.r * 16 + sinkPx(s.player.r, s.player.c), px = s.player.c * 16;
-      ctx.drawImage(C.shadow, px, py); ctx.drawImage(C[pk], px, py);
+      let py = s.player.r * 16 + sinkPx(s.player.r, s.player.c), px = s.player.c * 16, sc = 1, hop = 0;
+      const A = this.pA;
+      if (A && t < A.start + A.dur) {
+        const q = Math.max(0, (t - A.start) / A.dur);
+        if (A.warp) { if (q < 0.5) { px = A.fc * 16; py = A.fr * 16; sc = 1 - q * 2; } else sc = q * 2 - 1; }
+        else { const m = tw(A, px, py); px = m.x; py = m.y; hop = Math.round(Math.sin(q * Math.PI) * 2); }
+      } else hop = Math.floor(t / 480) % 2;
+      ctx.drawImage(C.shadow, px, py);
+      if (sc < 1) { const z = Math.max(1, Math.round(16 * sc)); ctx.drawImage(C[pk], px + Math.round((16 - z) / 2), py + 16 - z, z, z); groomDrawX = px; groomDrawY = py; }
+      else { ctx.drawImage(C[pk], px, py - hop); groomDrawX = px; groomDrawY = py - hop; }
     }
 
     // Lighting overlay.
@@ -151,7 +174,8 @@ export class Renderer {
       }
       glows.forEach(([r, c]) => {
         const cx = c * 16 + 8, cy = r * 16 + 6;
-        const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, 34);
+        const fl = 34 + Math.sin(t / 130 + r * 3 + c) * 1.5 + Math.sin(t / 53 + c) * 0.8; // candle flicker
+        const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, fl);
         g.addColorStop(0, 'rgba(255,214,130,0.75)'); g.addColorStop(1, 'rgba(255,214,130,0)');
         ctx.fillStyle = g; ctx.fillRect(cx - 34, cy - 34, 68, 68);
       });
@@ -161,8 +185,26 @@ export class Renderer {
     // Couple initials, drawn last so lighting doesn't tint the labels.
     const bi = this.initials && this.initials.bride;
     const gi = this.initials && this.initials.groom;
-    if (bi) level.BRIDES.forEach((b) => this.drawBadge(ctx, bi, b.r, b.c));
-    if (gi) this.drawBadge(ctx, gi, s.player.r, s.player.c);
+    if (bi) level.BRIDES.forEach((b) => this.drawBadge(ctx, bi, b.r - (Math.floor((t + 260) / 520) % 2) / 16, b.c));
+    if (gi) this.drawBadge(ctx, gi, groomDrawY / 16, groomDrawX / 16);
+
+    // Win confetti burst (80 particles from the groom tile; fades over last 0.7s of 2.8s).
+    const K = this.confetti;
+    if (K) {
+      const dt = (t - K.t) / 1000;
+      if (dt > 2.8) this.confetti = null;
+      else if (dt > 0) {
+        ctx.globalAlpha = Math.min(1, (2.8 - dt) / 0.7);
+        K.ps.forEach((p) => {
+          const kk = (1 - Math.exp(-dt * 1.6)) / 1.6;
+          const fx = p.x + p.vx * kk, fy = p.y + p.vy * kk + 70 * dt * dt;
+          const flip = Math.abs(Math.cos(dt * p.spin)) > 0.4;
+          ctx.fillStyle = p.col;
+          ctx.fillRect(Math.round(fx), Math.round(fy), flip ? p.s + 1 : 1, flip ? p.s : p.s + 1);
+        });
+        ctx.globalAlpha = 1;
+      }
+    }
   }
 
   badge(letter) {

@@ -75,9 +75,9 @@ export function buildSprites() {
   R.warpFx0 = norm(['', '.....u..........', '..........W.....', '', '......W...u.....']);
   R.warpFx1 = norm(['......W.........', '.........u......', '.....u..........', '...........W....', '']);
   R.boulder = norm(['', '.....KKKKKK.....', '...KKMMMMMMKK...', '..KMMWWMMMMmmK..', '.KMMWWMMMMMMmmK.', '.KMWMMMMMMMMmmK.', 'KMMMMMMnMMMMmmnK', 'KMMMMMnnMMMMmmnK', 'KMMMMMMMMMMmmnnK', 'KmMMMMMMMMmmmnnK', 'KmmMMMMMMmmmnnnK', '.KmmmmmmmmmnnnK.', '.KnmmmmmmmnnnnK.', '..KnnnnnnnnnnK..', '...KKKKKKKKKK...']);
-  R.groomDown = norm(['', '....KKKKKKKK....', '...KHHHHHHHHK...', '..KHHhHHHHhHHK..', '..KHSSSSSSSSHK..', '..KSSKSSSSKSSK..', '..KSSKSSSSKSSK..', '..KSPSSSSSSPSK..', '...KsSSSSSSsK...', '...KBWWRRWWBK...', '..KBRBWRRWBBBK..', '..KSKBBWWBBKSK..', '...KKBBBBBBKK...', '....KBBKKBBK....', '....KKK..KKK....']);
+  R.groomDown = norm(['', '....KKKKKKKK....', '...KHHHHHHHHK...', '..KHHhHHHHhHHK..', '..KHBBBSSBBBHK..', '..KSBuBBBBuBSK..', '..KSBKBSSBKBSK..', '..KSBBBSSBBBSK..', '...KsSSSSSSsK...', '...KBWWKKWWBK...', '..KBRBWKKWBBBK..', '..KSKBBWWBBKSK..', '...KKBBBBBBKK...', '....KBBKKBBK....', '....KKK..KKK....']);
   R.groomUp = norm(['', '....KKKKKKKK....', '...KHHHHHHHHK...', '..KHHhHHHHhHHK..', '..KHHHHHHHHHHK..', '..KHHHhHHhHHHK..', '..KHHHHHHHHHHK..', '..KsHHHHHHHHsK..', '....KSSSSSSK....', '...KBBBBBBBBK...', '..KBBBBbbBBBBK..', '..KSKBBbbBBKSK..', '...KKBBBBBBKK...', '....KBBKKBBK....', '....KKK..KKK....']);
-  R.groomRight = norm(['', '.....KKKKKK.....', '....KHHHHHHK....', '...KHHhHHHHHK...', '...KHHHHSSSSK...', '...KHHHSSSKSK...', '...KHHsSSSKSK...', '...KHSSSSSPSSK..', '....KsSSSSSK....', '....KBBBWRK.....', '...KBBBBBWK.....', '...KBBBBSSK.....', '....KBBBBBK.....', '....KBBKBBK.....', '....KKK.KKKK....']);
+  R.groomRight = norm(['', '.....KKKKKK.....', '....KHHHHHHK....', '...KHHhHHHHHK...', '...KHHHHSBBBK...', '...KHHHBBBuBK...', '...KHHsSSBKBK...', '...KHSSSSBBBSK..', '....KsSSSSSK....', '....KBBBWKK.....', '...KBBBBBWK.....', '...KBBBBSSK.....', '....KBBBBBK.....', '....KBBKBBK.....', '....KKK.KKKK....']);
   R.groomPushRight = R.groomRight.slice();
   R.groomPushRight[10] = '...KBBBBBBSSK...';
   R.groomPushRight[11] = '...KBBBBBBSSK...';

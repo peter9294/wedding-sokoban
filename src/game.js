@@ -122,9 +122,31 @@ function loadStage(idx, restore) {
 // ---- actions ---------------------------------------------------------------
 function doMove(dr, dc, dir) {
   if (currentScreen !== 'play' || won || !level) return;
+  const prevPlayer = state.player, prevBoxes = state.boxes;
   const res = level.step(state, dr, dc, dir);
   state = res.state;
   if (res.anim) anim = res.anim;
+
+  // Drive the render-only motion tweens (logic positions stay integer cells).
+  if (res.moved) {
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const dist = Math.abs(state.player.r - prevPlayer.r) + Math.abs(state.player.c - prevPlayer.c);
+    renderer.pA = { fr: prevPlayer.r, fc: prevPlayer.c, start: now, dur: dist > 1 ? 280 : 120, warp: dist > 1 };
+    const pb = state.boxes.findIndex((b, i) => b !== prevBoxes[i]);
+    renderer.bA = pb >= 0 ? { i: pb, fr: prevBoxes[pb].r, fc: prevBoxes[pb].c, start: now, dur: 120 } : null;
+    if (res.won && !won) {
+      const cx = state.player.c * 16 + 8, cy = state.player.r * 16 + 4;
+      const cols = ['#e0507a', '#f7a1bd', '#f6c94f', '#fffaf4', '#b0e8f7', '#9ad35b'];
+      renderer.confetti = {
+        t: now + 120, // burst once the final step tween lands
+        ps: Array.from({ length: 80 }, (_, i) => {
+          const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, v = 70 + Math.random() * 120;
+          return { x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, col: cols[i % cols.length], s: Math.random() < 0.3 ? 2 : 1, spin: 2 + Math.random() * 6 };
+        })
+      };
+    }
+  }
+
   saveCurrent();
   updateControls();
   if (res.won && !won) handleWin();
@@ -149,7 +171,9 @@ function handleWin() {
   $('win-note').textContent = 'Every gift found its heart, ' + progress.name + '.';
   $('win-solved').textContent = 'Solved ' + solved + (solved === 1 ? ' stage' : ' stages');
   $('next-stage').textContent = (stageIdx + 1 >= LEVELS.length) ? 'FINISH' : 'NEXT STAGE';
-  showOverlay('overlay-win');
+  // Let the confetti burst (render.js) play over the board before the board-covering
+  // popup rises. Inputs are already inert once `won` is set, so the pause is safe.
+  setTimeout(() => { if (won && currentScreen === 'play') showOverlay('overlay-win'); }, 750);
 }
 
 function nextStage() {
@@ -179,6 +203,7 @@ function undo() {
   const h = state.hist;
   const prev = h[h.length - 1];
   anim = null;
+  renderer.pA = renderer.bA = renderer.confetti = null;
   state = { ...state, player: prev.player, boxes: prev.boxes, stones: prev.stones, dir: prev.dir, moves: prev.moves, push: false, hist: h.slice(0, -1) };
   saveCurrent();
   updateControls();

@@ -104,6 +104,19 @@ body { overflow: hidden; overscroll-behavior: none; }
   display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 5;
 }
 .overlay[hidden] { display: none; }
+/* Win / all-clear entrance: scrim fades in so the confetti burst reads first, then
+   the panel pops. Keeps the hard pixel-shadow aesthetic (no shadow tweening). */
+.overlay:not([hidden]) { animation: win-fade .35s ease both; }
+.overlay:not([hidden]) .panel { animation: win-pop .45s cubic-bezier(.2,.8,.2,1) .12s both; }
+@keyframes win-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes win-pop {
+  0% { opacity: 0; transform: translateY(16px) scale(.9); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.03); }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay:not([hidden]), .overlay:not([hidden]) .panel { animation: none; }
+}
 .panel {
   background: var(--card); border: 3px solid var(--ink); border-radius: 12px;
   box-shadow: 0 5px 0 var(--ink); padding: 22px; width: min(90%, 300px); text-align: center;
