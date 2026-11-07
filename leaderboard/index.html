@@ -56,6 +56,12 @@
 
     .lb-empty { text-align: center; color: var(--muted); padding: 40px 10px; }
     .lb-foot { margin-top: auto; text-align: center; color: var(--muted); font-size: 12px; padding-top: 8px; }
+
+    /* Scan-to-join QR — sticky at the bottom so it stays visible while scrolling. */
+    .lb-join { position: sticky; bottom: 8px; margin-top: 6px; display: flex; align-items: center; justify-content: center;
+      gap: 12px; background: var(--card); border: 2px solid var(--ink); border-radius: 12px; box-shadow: 0 2px 0 var(--ink); padding: 8px 14px; }
+    .lb-join .lb-qr { width: 58px; height: 58px; display: block; background: #fff; border-radius: 4px; flex: none; }
+    .lb-join .lb-join-cap { font-family: var(--title); font-weight: 400; font-size: 15px; color: var(--ink); line-height: 1.15; }
     .dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--amber); margin-right: 6px; vertical-align: middle; }
     .dot.live { background: #4f9e45; }
 
@@ -67,7 +73,10 @@
     body.tv .lb-head .lead { font-size: 1.6vw; margin-top: .2vh; }
     body.tv .lb-tv-btn { padding: 8px 12px; font-size: 13px; }
     body.tv .lb-foot { display: none; }
-    body.tv .lb-body { flex: 1; min-height: 0; gap: 1.1vh; }
+    body.tv .lb-body { flex: 1; min-height: 0; gap: 1.1vh; overflow: hidden; }
+    body.tv .lb-join { position: static; margin-top: 0; gap: 1.5vw; padding: .6vh 2vw; border-width: 3px; box-shadow: 0 .4vh 0 var(--ink); border-radius: .8vw; }
+    body.tv .lb-join .lb-qr { width: 8vh; height: 8vh; }
+    body.tv .lb-join .lb-join-cap { font-size: 2vw; }
 
     body.tv .lb-podium { gap: 1.5vw; }
     body.tv .pod { padding: 1vh 1vw; gap: .25vh; border-width: 3px; box-shadow: 0 .6vh 0 var(--ink); border-radius: 1vw; }
@@ -101,11 +110,15 @@
       <div class="eyebrow">groom needs help!</div>
       <div class="title">Leaderboard</div>
       <div class="lead">Most stages cleared &middot; <b>Top 3 win a prize &#127873;</b></div>
-      <button id="tv-toggle" class="lb-tv-btn" type="button">&#9974; Big screen</button>
+      <button id="tv-toggle" class="lb-tv-btn" type="button" aria-label="Big screen" title="Big screen">&#9974;</button>
     </header>
     <div id="lb-body" class="lb-body">
       <div class="lb-empty">Loading scores&hellip;</div>
     </div>
+    <aside class="lb-join" id="lb-join">
+      <img class="lb-qr" src="./qr.svg" alt="QR code linking to the game" width="37" height="37" />
+      <div class="lb-join-cap">Scan to<br>join the game!</div>
+    </aside>
     <footer class="lb-foot">
       <span id="lb-status"><span class="dot"></span>Connecting&hellip;</span> &middot; <a class="link" href="../">Play the game &#8594;</a>
     </footer>

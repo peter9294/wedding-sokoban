@@ -81,7 +81,7 @@ function renderBoard(board) {
       const cols = cs.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
       const rowGap = parseFloat(cs.rowGap) || 0;
       const rowH = gridEl.children[0].getBoundingClientRect().height + rowGap;
-      const avail = window.innerHeight - gridEl.getBoundingClientRect().top;
+      const avail = bodyEl.getBoundingClientRect().bottom - gridEl.getBoundingClientRect().top;
       const rowsFit = rowH > 0 ? Math.max(0, Math.floor((avail + rowGap) / rowH)) : 0;
       const keep = rowsFit * cols;
       while (gridEl.children.length > keep) gridEl.removeChild(gridEl.lastElementChild);
@@ -127,7 +127,7 @@ document.addEventListener('visibilitychange', () => {
 // ---- Big-screen (venue) toggle ----
 function setTv(on) {
   document.body.classList.toggle('tv', on);
-  if (tvBtn) tvBtn.textContent = on ? '✕ Exit big screen' : '⛶ Big screen';
+  if (tvBtn) { tvBtn.textContent = on ? '✕' : '⛶'; tvBtn.title = tvBtn.ariaLabel = on ? 'Exit big screen' : 'Big screen'; }
   if (lastGood) renderBoard(lastGood);   // re-apply the layout + viewport-fill for the new mode now
   if (on && document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => { /* user can full-screen manually */ });
