@@ -26,12 +26,14 @@ body { overflow: hidden; overscroll-behavior: none; }
 
 /* ---- Shared bits ---- */
 .eyebrow { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--wine); }
-.title { font-family: var(--title); font-weight: 700; color: var(--ink); line-height: 1.05; }
+/* Weight 400, not 700: Pixelify Sans's bold "C" closes into an "O" at UI sizes
+   ("CONFIRM" -> "OONFIRM"). Regular weight keeps the C open and legible. */
+.title { font-family: var(--title); font-weight: 400; color: var(--ink); line-height: 1.05; }
 .card {
   background: var(--card); border: 2px solid var(--ink); border-radius: 12px; padding: 16px;
 }
 .btn {
-  font-family: var(--title); font-weight: 700; letter-spacing: .04em;
+  font-family: var(--title); font-weight: 400; letter-spacing: .04em;
   background: var(--rose-deep); color: #fff; border: 2px solid var(--ink); border-radius: 8px;
   box-shadow: 0 3px 0 var(--ink); padding: 12px 18px; cursor: pointer; font-size: 16px;
   -webkit-tap-highlight-color: transparent; user-select: none;
@@ -66,7 +68,7 @@ body { overflow: hidden; overscroll-behavior: none; }
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 10px 14px 6px; gap: 8px; border-bottom: 2px solid var(--ink); background: var(--card);
 }
-.hud .stage { font-family: var(--title); font-weight: 700; font-size: 16px; }
+.hud .stage { font-family: var(--title); font-weight: 400; font-size: 16px; }
 /* Numbers read poorly in the pixel title font — render any display number in the mono body font. */
 .num { font-family: var(--body); font-weight: 500; letter-spacing: 0; }
 .hud .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
@@ -144,7 +146,7 @@ body { overflow: hidden; overscroll-behavior: none; }
   display: flex; flex-direction: column; gap: 12px;
 }
 .tag {
-  align-self: center; background: var(--ink); color: var(--gold); font-family: var(--title); font-weight: 700;
+  align-self: center; background: var(--ink); color: var(--gold); font-family: var(--title); font-weight: 400;
   font-size: 11px; letter-spacing: .12em; padding: 4px 10px; border-radius: 999px;
 }
 .panel .big { font-family: var(--title); font-weight: 700; font-size: 26px; color: var(--wine); }
@@ -152,6 +154,9 @@ body { overflow: hidden; overscroll-behavior: none; }
 .panel .stat { font-family: var(--body); font-weight: 500; font-size: 16px; }
 .panel .row { display: flex; gap: 8px; }
 .panel .row .btn { flex: 1; }
+/* Destructive confirm button: quiet (secondary) with a wine tint, so the safe
+   Cancel is the emphasized default and the dangerous action isn't the bright one. */
+.btn.secondary.danger { color: var(--wine); }
 
 .toast {
   position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
