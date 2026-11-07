@@ -10,29 +10,89 @@
   <link rel="stylesheet" href="../styles.css" />
   <style>
     body { overflow: auto; }
-    .lb { max-width: 560px; height: auto; min-height: 100dvh; padding: 20px 16px calc(24px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 16px; }
-    .lb-head { text-align: center; }
-    .lb-head .title { font-size: 34px; }
+    .lb { max-width: 620px; min-height: 100dvh; padding: 16px 12px calc(16px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; }
+    .lb-head { text-align: center; position: relative; }
+    .lb-head .title { font-size: 30px; }
     .lb-head .lead { color: var(--muted); font-size: 13px; margin-top: 2px; }
-    .lb-body { display: flex; flex-direction: column; gap: 8px; }
-    .lb-row {
-      display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 12px;
-      background: var(--card); border: 2px solid var(--ink); border-radius: 12px;
-      box-shadow: 0 2px 0 var(--ink); padding: 12px 14px;
-    }
-    .lb-row .rank { font-family: var(--body); font-weight: 500; font-size: 18px; text-align: center; color: var(--muted); }
-    .lb-row .who { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-    .lb-row .who .nm { font-family: var(--title); font-weight: 700; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-    .lb-row .who .uid { flex: none; font-family: var(--body); font-weight: 400; font-size: 11px; color: var(--muted); opacity: .5; }
-    .lb-row .score { font-family: var(--body); font-weight: 500; font-size: 20px; color: var(--wine); white-space: nowrap; }
-    .lb-row .score small { font-family: var(--body); font-weight: 400; font-size: 11px; color: var(--muted); display: block; text-align: right; }
-    .lb-row.top1 { border-color: var(--amber); box-shadow: 0 3px 0 var(--amber); background: #fffdf6; }
-    .lb-row.top1 .rank, .lb-row.top2 .rank, .lb-row.top3 .rank { color: var(--ink); }
-    .lb-row .medal { font-size: 20px; }
+    .lb-head .lead b { color: var(--wine); }
+    .lb-tv-btn { position: absolute; right: 0; top: 0; background: var(--card); color: var(--ink);
+      border: 2px solid var(--ink); border-radius: 8px; box-shadow: 0 2px 0 var(--ink);
+      padding: 5px 9px; font-family: var(--body); font-size: 11px; cursor: pointer; }
+    .lb-tv-btn:active { transform: translateY(2px); box-shadow: none; }
+    .lb-body { display: flex; flex-direction: column; gap: 10px; }
+
+    /* Top 3 — the prize podium */
+    .lb-podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-items: end; }
+    .pod { background: var(--card); border: 2px solid var(--ink); border-radius: 12px; box-shadow: 0 3px 0 var(--ink);
+      padding: 10px 8px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; }
+    .pod .medal { font-size: 26px; line-height: 1; }
+    .pod .pod-name { max-width: 100%; min-width: 0; }
+    .pod .pod-name .nm { font-family: var(--title); font-weight: 400; font-size: 15px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pod .pod-name .uid { font-family: var(--body); font-size: 10px; color: var(--muted); opacity: .5; }
+    .pod .pod-score { font-family: var(--body); font-weight: 500; font-size: 20px; color: var(--wine); }
+    .pod .pod-score small { font-size: 10px; color: var(--muted); font-weight: 400; }
+    .pod .fin { font-family: var(--body); font-size: 10px; color: var(--muted); }
+    .pod .prize { font-family: var(--body); font-size: 10px; color: var(--wine); }
+    .pod1 { border-color: var(--amber); box-shadow: 0 3px 0 var(--amber); background: #fffdf6; }
+
+    /* 4–10 — list */
+    .lb-list { display: flex; flex-direction: column; gap: 4px; }
+    .lb-list .lb-row { display: grid; grid-template-columns: 26px 1fr auto auto; align-items: center; gap: 8px;
+      background: var(--card); border: 2px solid var(--ink); border-radius: 8px; box-shadow: 0 2px 0 var(--ink); padding: 6px 10px; }
+    .lb-list .rank { font-family: var(--body); font-weight: 500; font-size: 14px; color: var(--muted); text-align: center; }
+    .lb-list .who { min-width: 0; display: flex; align-items: baseline; gap: 5px; }
+    .lb-list .who .nm { font-family: var(--title); font-weight: 400; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .lb-list .who .uid { flex: none; font-family: var(--body); font-size: 10px; color: var(--muted); opacity: .5; }
+    .lb-list .fin { font-family: var(--body); font-size: 10px; color: var(--muted); white-space: nowrap; }
+    .lb-list .score { font-family: var(--body); font-weight: 500; font-size: 17px; color: var(--wine); }
+
+    /* 11–25 — grid */
+    .lb-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; }
+    .lb-grid .cell { display: flex; align-items: baseline; gap: 6px; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; padding: 4px 8px; min-width: 0; }
+    .lb-grid .rank { font-family: var(--body); font-size: 12px; color: var(--muted); width: 20px; flex: none; }
+    .lb-grid .who { font-family: var(--title); font-weight: 400; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+    .lb-grid .who .uid { font-family: var(--body); font-size: 9px; color: var(--muted); opacity: .5; }
+    .lb-grid .score { font-family: var(--body); font-weight: 500; font-size: 13px; color: var(--wine); flex: none; }
+
     .lb-empty { text-align: center; color: var(--muted); padding: 40px 10px; }
-    .lb-foot { margin-top: auto; text-align: center; color: var(--muted); font-size: 12px; }
+    .lb-foot { margin-top: auto; text-align: center; color: var(--muted); font-size: 12px; padding-top: 8px; }
     .dot { display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: var(--amber); margin-right: 6px; vertical-align: middle; }
     .dot.live { background: #4f9e45; }
+
+    /* ===== Big-screen (venue projector) mode ===== */
+    body.tv { overflow: hidden; }
+    /* #app in the game's styles.css is max-width:460px (id selector) — beat it here. */
+    body.tv #app.lb { max-width: none; width: 100vw; height: 100dvh; padding: 2.5vh 3vw; gap: 1.8vh; overflow: hidden; }
+    body.tv .lb-head .title { font-size: 5vw; }
+    body.tv .lb-head .lead { font-size: 1.7vw; margin-top: .4vh; }
+    body.tv .lb-tv-btn { padding: 8px 12px; font-size: 13px; }
+    body.tv .lb-foot { display: none; }
+    body.tv .lb-body { flex: 1; min-height: 0; gap: 2vh; }
+
+    body.tv .lb-podium { gap: 1.5vw; }
+    body.tv .pod { padding: 1.6vh 1vw; gap: .5vh; border-width: 3px; box-shadow: 0 .6vh 0 var(--ink); border-radius: 1vw; }
+    body.tv .pod .medal { font-size: 5vw; }
+    body.tv .pod .pod-name .nm { font-size: 2.4vw; }
+    body.tv .pod .pod-name .uid { font-size: 1.2vw; }
+    body.tv .pod .pod-score { font-size: 3vw; }
+    body.tv .pod .pod-score small { font-size: 1.1vw; }
+    body.tv .pod .fin, body.tv .pod .prize { font-size: 1.3vw; }
+    body.tv .pod1 { transform: scale(1.05); box-shadow: 0 .6vh 0 var(--amber); }
+
+    body.tv .lb-list { display: grid; grid-template-columns: 1fr 1fr; gap: .8vh 1.5vw; }
+    body.tv .lb-list .lb-row { padding: 1vh 1.2vw; border-radius: .7vw; }
+    body.tv .lb-list .rank { font-size: 1.8vw; }
+    body.tv .lb-list .who .nm { font-size: 1.9vw; }
+    body.tv .lb-list .who .uid { font-size: 1vw; }
+    body.tv .lb-list .fin { font-size: 1.1vw; }
+    body.tv .lb-list .score { font-size: 2.1vw; }
+
+    body.tv .lb-grid { grid-template-columns: repeat(5, 1fr); gap: .6vh .8vw; }
+    body.tv .lb-grid .cell { padding: .7vh .8vw; border-radius: .5vw; }
+    body.tv .lb-grid .rank { font-size: 1.2vw; width: 2.2vw; }
+    body.tv .lb-grid .who { font-size: 1.35vw; }
+    body.tv .lb-grid .who .uid { font-size: .9vw; }
+    body.tv .lb-grid .score { font-size: 1.5vw; }
   </style>
 </head>
 <body>
@@ -40,7 +100,8 @@
     <header class="lb-head">
       <div class="eyebrow">groom needs help!</div>
       <div class="title">Leaderboard</div>
-      <div class="lead">Most stages cleared</div>
+      <div class="lead">Most stages cleared &middot; <b>Top 3 win a prize &#127873;</b></div>
+      <button id="tv-toggle" class="lb-tv-btn" type="button">&#9974; Big screen</button>
     </header>
     <div id="lb-body" class="lb-body">
       <div class="lb-empty">Loading scores&hellip;</div>

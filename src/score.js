@@ -112,7 +112,9 @@ export function buildLeaderboard(rows) {
     }
   }
 
-  const list = [...byKey.values()].sort((a, b) => (b.solved - a.solved) || (a.atRow - b.atRow));
+  // Rank by most stages; tie-break = who reached that count FIRST (earliest finish).
+  const t = (x) => (x.ts instanceof Date && !isNaN(x.ts) ? x.ts.getTime() : Infinity);
+  const list = [...byKey.values()].sort((a, b) => (b.solved - a.solved) || (t(a) - t(b)) || (a.atRow - b.atRow));
   const top = CONFIG.leaderboard.top || 100;
   return list.slice(0, top).map((e) => ({ ...e, uid: shortId(e.session) }));
 }
