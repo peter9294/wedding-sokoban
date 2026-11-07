@@ -1,0 +1,96 @@
+[
+  {
+    "name": "Surprise sample A",
+    "lighting": "golden",
+    "wallStyle": "hedge",
+    "floor": [
+      "........",
+      "........",
+      "....1...",
+      "...12...",
+      ".....2..",
+      "........",
+      "........",
+      "........"
+    ],
+    "map": [
+      "########",
+      "#......#",
+      "#..21#.#",
+      "#......#",
+      "#.#2.1.#",
+      "#@.....#",
+      "#c######",
+      "#B######"
+    ],
+    "_meta": {
+      "note": "Drop-in: fill the hearts, the cage opens, the groom steps onto the bride. Re-theme/colors freely.",
+      "pushes": 15,
+      "lowerBound": 9,
+      "detour": 6,
+      "returns": 4,
+      "trapFail": 1,
+      "trapDepth": 0.54,
+      "trapHidden": 0.75,
+      "trap": 1.36,
+      "realDecisions": 3,
+      "branches": 15,
+      "aliveForced": 0.93,
+      "distinctOptimal": 40,
+      "cellsUsed": 0.32,
+      "boxes": 4,
+      "floorCells": 28,
+      "score": 205.4,
+      "engineVerified": true,
+      "weddingWrapped": true,
+      "solutionPushes": 15
+    }
+  },
+  {
+    "name": "Surprise sample B",
+    "lighting": "evening",
+    "wallStyle": "fence",
+    "floor": [
+      "........",
+      "........",
+      "........",
+      "......2.",
+      "...2....",
+      "..1.1...",
+      "........",
+      "........"
+    ],
+    "map": [
+      "########",
+      "#.....@#",
+      "#...#..#",
+      "#.###22#",
+      "#..1.1.#",
+      "#......#",
+      "#c######",
+      "#B######"
+    ],
+    "_meta": {
+      "note": "Drop-in: fill the hearts, the cage opens, the groom steps onto the bride. Re-theme/colors freely.",
+      "pushes": 19,
+      "lowerBound": 11,
+      "detour": 8,
+      "returns": 6,
+      "trapFail": 1,
+      "trapDepth": 0.13,
+      "trapHidden": 0.75,
+      "trap": 0.31,
+      "realDecisions": 3,
+      "branches": 19,
+      "aliveForced": 0.94,
+      "distinctOptimal": 40,
+      "cellsUsed": 0.5,
+      "boxes": 4,
+      "floorCells": 26,
+      "score": 201.2,
+      "engineVerified": true,
+      "weddingWrapped": true,
+      "solutionPushes": 19
+    }
+  }
+]

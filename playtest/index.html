@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>groom needs help! — Playtest</title>
+<style>
+  :root{
+    --ink:#3a2433; --paper:#fbf3ea; --card:#fffaf4; --rule:#d9c9c4; --muted:#6e5664;
+    --rose:#e0507a; --wine:#a8325a; --grass:#9ad35b; --grass2:#86c34d;
+    --aisle:#d8445a; --path:#cfc6bd; --pond:#5bc3e8; --wall:#5a4450; --gold:#f6c94f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'DM Mono',ui-monospace,Menlo,Consolas,monospace;
+       -webkit-user-select:none;user-select:none;display:flex;flex-direction:column;align-items:center;gap:12px;padding:14px 10px 28px}
+  h1{font-family:'Pixelify Sans',system-ui,sans-serif;font-size:22px;margin:2px 0 0;letter-spacing:.02em}
+  .sub{font-size:13px;color:var(--ink);margin-top:-6px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;max-width:620px}
+  select,button{font-family:inherit;font-size:13px;border:2px solid var(--ink);border-radius:8px;background:var(--card);
+    color:var(--ink);padding:7px 10px;box-shadow:0 2px 0 var(--ink);cursor:pointer}
+  button:active{transform:translateY(2px);box-shadow:none}
+  button.primary{background:var(--wine);color:#fff}
+  #status{font-size:12px;color:var(--ink);text-align:center;min-height:18px}
+  #boardwrap{position:relative;padding:10px;background:#efe3da;border:3px solid var(--ink);border-radius:12px;box-shadow:0 5px 0 var(--ink)}
+  #board{display:grid;gap:0;line-height:1}
+  .cell{width:100%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:22px;
+        border:1px solid rgba(58,36,51,.06)}
+  .grass{background:var(--grass)}
+  .grass2{background:var(--grass2)}
+  .aisle{background:var(--aisle)}
+  .path{background:var(--path)}
+  .pond{background:var(--pond)}
+  .wall{background:var(--wall);box-shadow:inset 0 0 0 2px rgba(0,0,0,.28)}
+  .cage{background:#e7c86a;box-shadow:inset 0 0 0 2px #b98a1e}
+  .cage-open{background:#fff6da}
+  .bride{background:#fac6d8}
+  .delivered{background:#fff2c6}
+  .groom{outline:0}
+  /* D-pad */
+  .pad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:6px}
+  .pad button{width:52px;height:52px;font-size:20px;padding:0;display:flex;align-items:center;justify-content:center}
+  .pad .sp{visibility:hidden}
+  .side{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+  .legend{font-size:12.5px;color:var(--ink);max-width:560px;text-align:center;line-height:1.7}
+  .controls{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center}
+  /* win overlay */
+  #win{position:fixed;inset:0;background:rgba(58,36,51,.55);display:none;align-items:center;justify-content:center;padding:20px}
+  #win .card{background:var(--card);border:3px solid var(--ink);border-radius:14px;box-shadow:0 6px 0 var(--ink);
+    padding:22px 26px;text-align:center;max-width:300px}
+  #win .tag{display:inline-block;background:var(--gold);border:2px solid #3a2433;color:#3a2433;border-radius:999px;
+    font-family:'Pixelify Sans',sans-serif;font-size:12px;padding:3px 10px;letter-spacing:.08em}
+  #win h2{font-family:'Pixelify Sans',sans-serif;color:var(--wine);font-size:26px;margin:12px 0 4px}
+  #win p{font-size:13px;color:var(--ink);margin:0 0 16px}
+  #win .row{display:flex;gap:10px;justify-content:center}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){--paper:#241820;--card:#2e2029;--ink:#f3e9e1;--muted:#b9a7b2;--rule:#4a3a44;--wall:#1c1420}
+    :root:not([data-theme="light"]) select,:root:not([data-theme="light"]) button{box-shadow:0 2px 0 #000}
+    :root:not([data-theme="light"]) #boardwrap{background:#2a1f27}
+    :root:not([data-theme="light"]) #win h2{color:#f7a1bd}
+  }
+</style>
+</head>
+<body>
+  <h1>Something&nbsp;Pushed — Playtest</h1>
+  <div class="sub">local level tester · no name, no score, no form — just play</div>
+
+  <div class="bar">
+    <button id="prev">◀ Prev</button>
+    <select id="stage" aria-label="Select stage"></select>
+    <button id="next">Next ▶</button>
+    <button id="reload">⟳ Reload stages</button>
+  </div>
+
+  <div id="status"></div>
+  <div id="boardwrap"><div id="board"></div></div>
+
+  <div class="controls">
+    <div class="pad">
+      <span class="sp"></span><button data-dir="U">▲</button><span class="sp"></span>
+      <button data-dir="L">◀</button><button id="restart" title="Restart (R)">⟲</button><button data-dir="R">▶</button>
+      <span class="sp"></span><button data-dir="D">▼</button><span class="sp"></span>
+    </div>
+    <div class="side">
+      <button id="undo">↶ Undo (Z)</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    🤵 groom · 👰 bride (step onto her to win) · 🎁 gift · 🍰 cake · 🪨 stone · 💗/🤍 heart · 🔒 locked cage · 🔓 open cage · 🌀 warp<br>
+    Keys: arrows / WASD move · Z undo · R restart · N/P next & prev stage · swipe on the board on touch
+  </div>
+
+  <div id="win">
+    <div class="card">
+      <h2>Just married! 💑</h2>
+      <p id="win-sub"></p>
+      <div class="row">
+        <button id="win-replay">Replay</button>
+        <button id="win-next" class="primary">Next stage ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="playtest.js"></script>
+</body>
+</html>

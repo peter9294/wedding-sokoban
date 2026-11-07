@@ -15,6 +15,12 @@ const FALLBACK_LEVELS = [{
   map: ['#######', '#.....#', '#.....#', '#..$..#', '#..@..#', '#.....#', '#######']
 }];
 
+// The last stage is a surprise: each player gets one board drawn at random from a
+// pre-generated, solver-verified pool, then pinned in localStorage so replays show the
+// same board. Content (not an index) is stored, so editing the pool never shifts anyone.
+const FINALE_KEY = 'sp-finale-v1';
+const FINALE_WRAP = { name: 'Happily Ever After', lighting: 'golden', wallStyle: 'blossom' };
+
 let LEVELS = [];
 let IDS = [];
 let sprites, renderer, ctx;
@@ -45,6 +51,7 @@ async function init() {
     const data = await res.json();
     if (!Array.isArray(data) || !data.length) throw new Error('empty');
     LEVELS = data;
+    await appendFinale();           // adds the per-player surprise stage at the end
   } catch (e) {
     LEVELS = FALLBACK_LEVELS;
     toast('Using a built-in level (levels.json not found)');
@@ -62,6 +69,33 @@ async function init() {
   if (progress.name && progress.tutorialSeen) enterGame();
   else if (progress.name) { $('tut-welcome').textContent = 'Welcome, ' + progress.name + '!'; showScreen('tutorial'); }
   else showScreen('name');
+}
+
+// Pick (once) and pin the surprise finale board, then append it as the last stage.
+// Any failure here is swallowed: the game simply plays the scripted stages.
+async function appendFinale() {
+  try {
+    const res = await fetch('./finale-pool.json?v=' + encodeURIComponent(CONFIG.levelsVersion || '1'));
+    if (!res.ok) throw new Error('fetch ' + res.status);
+    const pool = await res.json();
+    if (!Array.isArray(pool) || !pool.length) throw new Error('empty pool');
+
+    let board = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem(FINALE_KEY) || 'null');
+      if (saved && Array.isArray(saved.floor) && Array.isArray(saved.map)) board = saved;
+    } catch { /* ignore a corrupt/blocked store */ }
+
+    if (!board) {
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      board = { floor: pick.floor, map: pick.map };
+      try { localStorage.setItem(FINALE_KEY, JSON.stringify(board)); } catch { /* private mode: still playable, just not pinned */ }
+    }
+
+    LEVELS.push({ ...FINALE_WRAP, floor: board.floor, map: board.map });
+  } catch (e) {
+    /* no finale appended */
+  }
 }
 
 // ---- screen routing --------------------------------------------------------
@@ -319,6 +353,14 @@ function bindEvents() {
   $('btn-restart').addEventListener('click', restart);
   $('next-stage').addEventListener('click', nextStage);
   $('replay-all').addEventListener('click', replayAll);
+
+  // Hard reset — clears all saved progress on this device and reloads. Last-resort
+  // escape hatch if a board ever gets stuck. Confirmed, because it is irreversible.
+  $('hard-reset').addEventListener('click', () => {
+    if (!confirm('Reset the game?\n\nThis clears your saved progress on this device and reloads the page. Your surprise finale stage will be re-drawn.')) return;
+    try { localStorage.clear(); } catch { /* ignore */ }
+    location.reload();
+  });
 
   const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
   document.querySelectorAll('.dpad .pad[data-dir]').forEach((pad) => {

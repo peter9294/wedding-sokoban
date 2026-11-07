@@ -17,7 +17,7 @@ export const CONFIG = {
   // Levels -----------------------------------------------------------------
   // GitHub Pages caches files ~10 min. Bump this whenever you edit levels.json
   // so players fetch the new version instead of a stale cached copy.
-  levelsVersion: '2',
+  levelsVersion: '3',
 
   // Google Form (score saving) --------------------------------------------
   // The form's POST endpoint (the PUBLISHED url, ending in /formResponse):
