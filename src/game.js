@@ -105,7 +105,7 @@ function showScreen(name) {
   $('screen-name').hidden = name !== 'name';
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
-  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); }
+  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); }
   if (name === 'play') requestAnimationFrame(fitCanvas);
   if (name === 'name') setTimeout(() => $('name-input').focus(), 30);
 }
@@ -355,13 +355,16 @@ function bindEvents() {
   $('next-stage').addEventListener('click', nextStage);
   $('replay-all').addEventListener('click', replayAll);
 
-  // Hard reset — clears all saved progress on this device and reloads. Last-resort
-  // escape hatch if a board ever gets stuck. Confirmed, because it is irreversible.
-  $('hard-reset').addEventListener('click', () => {
-    if (!confirm('Reset the game?\n\nThis clears your saved progress on this device and reloads the page. Your surprise finale stage will be re-drawn.')) return;
+  // Hard reset — clears all saved progress on this device and reloads. Uses an in-page
+  // confirm overlay, because native confirm() is silently blocked in some mobile and
+  // in-app webviews (the button would appear to do nothing).
+  $('hard-reset').addEventListener('click', () => showOverlay('overlay-reset'));
+  $('reset-cancel').addEventListener('click', () => hideOverlay('overlay-reset'));
+  $('reset-confirm').addEventListener('click', () => {
     try { localStorage.clear(); } catch { /* ignore */ }
     location.reload();
   });
+  $('overlay-reset').addEventListener('click', (e) => { if (e.target.id === 'overlay-reset') hideOverlay('overlay-reset'); });
 
   const DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
   document.querySelectorAll('.dpad .pad[data-dir]').forEach((pad) => {
@@ -370,6 +373,7 @@ function bindEvents() {
 
   window.addEventListener('keydown', (e) => {
     if (currentScreen !== 'play') return;
+    if (!$('overlay-reset').hidden) { if (e.key === 'Escape') hideOverlay('overlay-reset'); return; }
     if (!$('overlay-win').hidden || !$('overlay-allclear').hidden) return; // popup open: ignore game keys
     const k = e.key.toLowerCase();
     const map = { arrowup: ['up'], w: ['up'], arrowdown: ['down'], s: ['down'], arrowleft: ['left'], a: ['left'], arrowright: ['right'], d: ['right'] };

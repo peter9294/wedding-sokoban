@@ -68,8 +68,10 @@
         </div>
         <div class="action-col">
           <button class="btn" id="btn-undo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-2"/></svg><span>UNDO</span></button>
-          <button class="btn secondary" id="btn-restart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5A8 8 0 1 0 18 17"/><path d="M20 4v6h-6"/></svg><span>RESTART</span></button>
-          <button class="btn ghost reset" id="hard-reset" title="Clear saved progress on this device and reload">Reset game</button>
+          <div class="action-row">
+            <button class="btn secondary" id="btn-restart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5A8 8 0 1 0 18 17"/><path d="M20 4v6h-6"/></svg><span>RESTART</span></button>
+            <button class="btn ghost reset" id="hard-reset" title="Clear saved progress on this device and reload">Reset</button>
+          </div>
         </div>
       </div>
 
@@ -95,6 +97,19 @@
           <div class="row">
             <button class="btn secondary" id="replay-all">Play again</button>
             <a class="btn" href="./leaderboard/" target="_blank" rel="noopener" style="text-decoration:none;align-items:center;justify-content:center;display:flex;">Leaderboard</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reset confirm -->
+      <div class="overlay" id="overlay-reset" hidden>
+        <div class="panel">
+          <span class="tag">RESET</span>
+          <div class="big">Start over?</div>
+          <div class="note">This clears your saved progress on this device and reloads. Your surprise finale stage will be re-drawn.</div>
+          <div class="row">
+            <button class="btn secondary" id="reset-cancel">Cancel</button>
+            <button class="btn" id="reset-confirm">Reset</button>
           </div>
         </div>
       </div>
