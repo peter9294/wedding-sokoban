@@ -183,9 +183,12 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 .btn.secondary.danger { color: var(--wine); }
 /* Danger modal (Start over) — smaller and red-accented, so it's unmistakably the
    destructive one, distinct from the neutral Retry confirm. */
-.panel.danger { width: min(86%, 264px); padding: 18px; border-color: var(--wine); box-shadow: 0 5px 0 var(--wine); }
-.panel.danger .tag { background: var(--wine); color: #fff; }
-.panel.danger .big { font-size: 22px; }
+.panel.danger { width: min(86%, 264px); padding: 18px; background: var(--wine); border-color: var(--ink); box-shadow: 0 5px 0 var(--ink-deep); }
+.panel.danger .tag { background: #fff; color: var(--wine); }
+.panel.danger .big { font-size: 22px; color: #fff; }
+.panel.danger .note { color: rgba(255, 255, 255, .88); }
+.panel.danger #reset-cancel { background: var(--card); color: var(--ink); }                         /* solid cream — the safe default pops on red */
+.panel.danger #reset-confirm { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .75); }  /* quiet outline */
 
 .toast {
   position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
