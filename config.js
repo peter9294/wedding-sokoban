@@ -11,6 +11,12 @@ export const CONFIG = {
   // freezes. ISO local time, in the players' timezone.
   weddingDate: '2026-11-08T21:00',       // Nov 8, 9:00 PM
 
+  // Fresh start for the event. Any saved progress that was STARTED before this
+  // moment is cleared the next time the player opens the game at/after it — so
+  // everyone begins clean when the party starts. Sessions started at/after this
+  // time are kept (only the in-game "Start over" clears those). Local time.
+  freshStartAt: '2026-11-08T19:00',      // Nov 8, 7:00 PM
+
   // Initials shown above the characters (the couple). One letter each.
   couple: { bride: 'A', groom: 'P' },    // Anna / Peter
 

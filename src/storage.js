@@ -40,7 +40,7 @@ export function newSessionId() {
 }
 
 function blank() {
-  return { v: SCHEMA, name: '', sessionId: '', cleared: [], sentStages: [], current: null, tutorialSeen: false };
+  return { v: SCHEMA, name: '', sessionId: '', startedAt: 0, cleared: [], sentStages: [], current: null, tutorialSeen: false };
 }
 
 export function loadProgress() {
@@ -57,6 +57,7 @@ export function loadProgress() {
     v: SCHEMA,
     name: typeof data.name === 'string' ? data.name : '',
     sessionId: typeof data.sessionId === 'string' ? data.sessionId : '',
+    startedAt: typeof data.startedAt === 'number' ? data.startedAt : 0,
     cleared: Array.isArray(data.cleared) ? data.cleared.filter((x) => typeof x === 'string') : [],
     sentStages: Array.isArray(data.sentStages) ? data.sentStages.filter((x) => typeof x === 'string') : [],
     current: data.current && typeof data.current === 'object' ? data.current : null,

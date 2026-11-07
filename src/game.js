@@ -34,10 +34,28 @@ let progress;
 let currentScreen = 'menu';
 let tutorialFrom = 'play';   // where GOT IT returns to: 'play' (start) or 'menu' (just reading)
 
+// Event fresh-start: once we're at/after CONFIG.freshStartAt, clear any saved
+// progress that was STARTED before that moment, so pre-event practice is wiped and
+// everyone begins clean for the party. Progress started at/after the cutoff is kept.
+function maybeFreshStart() {
+  const cutoff = new Date(CONFIG.freshStartAt || '').getTime();
+  if (isNaN(cutoff) || Date.now() < cutoff) return;   // no cutoff set, or not time yet
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('sp-game-v1') || 'null'); } catch { /* ignore */ }
+  const startedAt = (saved && Number(saved.startedAt)) || 0;
+  if (startedAt < cutoff) {                            // pre-event (or legacy, no stamp) → wipe
+    try { localStorage.removeItem('sp-game-v1'); localStorage.removeItem('sp-finale-v1'); } catch { /* ignore */ }
+  }
+}
+
 // ---- boot ------------------------------------------------------------------
 async function init() {
+  maybeFreshStart();
   progress = loadProgress();
   if (!progress.sessionId) progress.sessionId = newSessionId();
+  // Stamp when this session began, so the fresh-start cutoff can tell pre-event
+  // saves from ones made during the event. Persist it right away.
+  if (!progress.startedAt) { progress.startedAt = Date.now(); saveProgress(progress); }
 
   sprites = buildSprites();
   renderer = new Renderer(sprites);
