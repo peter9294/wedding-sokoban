@@ -143,7 +143,7 @@ function showScreen(name) {
   $('screen-menu').hidden = name !== 'menu';
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
-  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); $('id-tip').hidden = true; }
+  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-retry'); hideOverlay('overlay-name'); $('id-tip').hidden = true; }
   if (name === 'menu') $('menu-play').textContent = (progress && (progress.current || (progress.cleared && progress.cleared.length))) ? 'RESUME' : 'PLAY';
   if (name === 'tutorial') startTutorialDemos(); else stopTutorialDemos();
   if (name === 'play') requestAnimationFrame(fitCanvas);
@@ -222,7 +222,7 @@ function loadStage(idx, restore) {
 // ---- actions ---------------------------------------------------------------
 function doMove(dr, dc, dir) {
   if (currentScreen !== 'play' || won || !level) return;
-  if (!$('overlay-name').hidden || !$('overlay-reset').hidden) return;  // a modal is open
+  if (!$('overlay-name').hidden || !$('overlay-reset').hidden || !$('overlay-retry').hidden) return;  // a modal is open
   const prevPlayer = state.player, prevBoxes = state.boxes;
   const res = level.step(state, dr, dc, dir);
   state = res.state;
@@ -479,7 +479,15 @@ function bindEvents() {
   $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmName(); } });
   $('got-it').addEventListener('click', gotIt);
   $('btn-undo').addEventListener('click', undo);
-  $('btn-restart').addEventListener('click', restart);
+  // Retry asks first (it discards the moves on this stage) — unless there's nothing to lose.
+  $('btn-restart').addEventListener('click', () => {
+    if (!level || won) return;
+    if (!state || state.hist.length === 0) { restart(); return; }
+    showOverlay('overlay-retry');
+  });
+  $('retry-cancel').addEventListener('click', () => hideOverlay('overlay-retry'));
+  $('retry-confirm').addEventListener('click', () => { hideOverlay('overlay-retry'); restart(); });
+  $('overlay-retry').addEventListener('click', (e) => { if (e.target.id === 'overlay-retry') hideOverlay('overlay-retry'); });
   $('next-stage').addEventListener('click', nextStage);
   $('replay-all').addEventListener('click', replayAll);
 
@@ -502,6 +510,7 @@ function bindEvents() {
   window.addEventListener('keydown', (e) => {
     if (currentScreen !== 'play') return;
     if (!$('overlay-name').hidden) { if (e.key === 'Escape') cancelName(); return; }  // typing a name — don't hijack letter keys
+    if (!$('overlay-retry').hidden) { if (e.key === 'Escape') hideOverlay('overlay-retry'); return; }
     if (!$('overlay-reset').hidden) { if (e.key === 'Escape') hideOverlay('overlay-reset'); return; }
     if (!$('overlay-win').hidden || !$('overlay-allclear').hidden) return; // popup open: ignore game keys
     const k = e.key.toLowerCase();
