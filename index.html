@@ -60,15 +60,15 @@
 
       <div class="controls">
         <div class="dpad">
-          <div class="pad du" data-dir="up">&#9650;</div>
-          <div class="pad dl" data-dir="left">&#9664;</div>
-          <div class="pad empty" style="grid-column:2;grid-row:2;"></div>
-          <div class="pad dr" data-dir="right">&#9654;</div>
-          <div class="pad dd" data-dir="down">&#9660;</div>
+          <div class="pad du" data-dir="up" role="button" aria-label="Move up"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
+          <div class="pad dl" data-dir="left" role="button" aria-label="Move left"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
+          <div class="pad hub" aria-hidden="true"></div>
+          <div class="pad dr" data-dir="right" role="button" aria-label="Move right"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
+          <div class="pad dd" data-dir="down" role="button" aria-label="Move down"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
         </div>
         <div class="action-col">
-          <button class="btn" id="btn-undo">UNDO</button>
-          <button class="btn secondary" id="btn-restart">Restart</button>
+          <button class="btn" id="btn-undo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-2"/></svg><span>UNDO</span></button>
+          <button class="btn secondary" id="btn-restart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5A8 8 0 1 0 18 17"/><path d="M20 4v6h-6"/></svg><span>RESTART</span></button>
           <button class="btn ghost reset" id="hard-reset" title="Clear saved progress on this device and reload">Reset game</button>
         </div>
       </div>
