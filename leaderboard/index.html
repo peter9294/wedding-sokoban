@@ -21,7 +21,9 @@
       box-shadow: 0 2px 0 var(--ink); padding: 12px 14px;
     }
     .lb-row .rank { font-family: var(--body); font-weight: 500; font-size: 18px; text-align: center; color: var(--muted); }
-    .lb-row .who { font-family: var(--title); font-weight: 700; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-row .who { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+    .lb-row .who .nm { font-family: var(--title); font-weight: 700; font-size: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .lb-row .who .uid { flex: none; font-family: var(--body); font-weight: 400; font-size: 11px; color: var(--muted); opacity: .5; }
     .lb-row .score { font-family: var(--body); font-weight: 500; font-size: 20px; color: var(--wine); white-space: nowrap; }
     .lb-row .score small { font-family: var(--body); font-weight: 400; font-size: 11px; color: var(--muted); display: block; text-align: right; }
     .lb-row.top1 { border-color: var(--amber); box-shadow: 0 3px 0 var(--amber); background: #fffdf6; }

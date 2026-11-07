@@ -96,13 +96,17 @@ export function buildLeaderboard(rows) {
   const byKey = new Map();
   for (const r of rows) {
     if (!r.name) continue;
-    const key = normName(r.name);
-    if (ignore.has(key)) continue;
+    const nkey = normName(r.name);
+    if (ignore.has(nkey)) continue;
     if (cutoff && r.ts && r.ts > cutoff) continue;
 
+    // One row per PLAYER, keyed on the per-device session id — so two people who
+    // type the same name stay separate rows. Legacy rows with no session fall back
+    // to the name key.
+    const key = r.session ? 's:' + r.session : 'n:' + nkey;
     const cur = byKey.get(key);
     if (!cur) {
-      byKey.set(key, { name: r.name, solved: r.solved, atRow: r.rowIndex, ts: r.ts });
+      byKey.set(key, { name: r.name, solved: r.solved, atRow: r.rowIndex, ts: r.ts, session: r.session });
     } else if (r.solved > cur.solved) {
       cur.solved = r.solved; cur.atRow = r.rowIndex; cur.ts = r.ts; cur.name = r.name;
     }
@@ -110,5 +114,12 @@ export function buildLeaderboard(rows) {
 
   const list = [...byKey.values()].sort((a, b) => (b.solved - a.solved) || (a.atRow - b.atRow));
   const top = CONFIG.leaderboard.top || 100;
-  return list.slice(0, top);
+  return list.slice(0, top).map((e) => ({ ...e, uid: shortId(e.session) }));
+}
+
+// A short, stable tag shown faintly beside the name so two players with the same
+// name can be told apart (same device -> same tag). Derived from the session id.
+function shortId(session) {
+  const s = String(session || '').replace(/^s_/, '');
+  return s ? s.slice(0, 4).toLowerCase() : '';
 }

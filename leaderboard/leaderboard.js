@@ -30,7 +30,8 @@ function renderBoard(board) {
     return (
       '<div class="lb-row' + topCls + '">' +
         '<div class="rank">' + rank + '</div>' +
-        '<div class="who">' + escapeHtml(e.name) + '</div>' +
+        '<div class="who"><span class="nm">' + escapeHtml(e.name) + '</span>' +
+          (e.uid ? '<span class="uid">{' + escapeHtml(e.uid) + '}</span>' : '') + '</div>' +
         '<div class="score">' + s + '<small>' + (s === 1 ? 'stage' : 'stages') + '</small></div>' +
       '</div>'
     );
