@@ -27,7 +27,7 @@ const FINALE_WRAP = { name: 'Happily Ever After', lighting: 'golden', wallStyle:
 const DEMO_DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
 const DEMOS = [
   { id: 'tut-demo-1', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['......', '....x.', '......'], map: ['######', '#@.$.#', '######'] }, script: ['right', 'right'] },
-  { id: 'tut-demo-2', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['......', '....1.', '......'], map: ['######', '#@.1.#', '######'] }, script: ['right', 'right'] },
+  { id: 'tut-demo-2', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['.......', '.1...3.', '.......'], map: ['#######', '#.1@3.#', '#######'] }, script: ['left', 'right', 'right'] },
   { id: 'tut-demo-3', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['.....', '...x.', '.....', '.....', '.....'], map: ['#####', '#@$.#', '#.c.#', '#.B.#', '#####'] }, script: ['right', 'down', 'down'] }
 ];
 let demoControllers = [];
@@ -144,6 +144,7 @@ function showScreen(name) {
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
   if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); $('id-tip').hidden = true; }
+  if (name === 'menu') $('menu-play').textContent = (progress && (progress.current || (progress.cleared && progress.cleared.length))) ? 'RESUME' : 'PLAY';
   if (name === 'tutorial') startTutorialDemos(); else stopTutorialDemos();
   if (name === 'play') requestAnimationFrame(fitCanvas);
 }
@@ -404,9 +405,9 @@ function fitCanvas() {
   const availW = Math.max(40, wrap.clientWidth - 20);
   const availH = Math.max(40, wrap.clientHeight - 20);
   const artW = level.w * 16, artH = level.h * 16;
-  let scale = Math.min(availW / artW, availH / artH);
-  if (scale >= 1) scale = Math.floor(scale);           // integer scale when upscaling = crisp pixels
-  scale = Math.max(scale, 0.1);
+  // Fill the available space (fractional scale) so big boards aren't tiny on phones;
+  // image-rendering:pixelated keeps the art crisp enough at non-integer scales.
+  let scale = Math.max(0.1, Math.min(availW / artW, availH / artH));
   cv.style.width = Math.round(artW * scale) + 'px';
   cv.style.height = Math.round(artH * scale) + 'px';
 }

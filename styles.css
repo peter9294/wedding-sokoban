@@ -57,8 +57,8 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 }
 .input:focus { outline: 3px solid var(--pink); }
 .input::placeholder { color: var(--muted); opacity: 1; }
-.tut-rows { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 8px 0 4px; }
-.tut-demo { image-rendering: pixelated; height: 68px; width: auto; display: block;
+.tut-rows { display: flex; flex-direction: column; align-items: center; gap: 12px; margin: 10px 0 6px; }
+.tut-demo { image-rendering: pixelated; height: 104px; width: auto; display: block;
   border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink); background: var(--card); }
 .tips { text-align: left; display: flex; flex-direction: column; gap: 12px; }
 .tip { display: flex; gap: 10px; align-items: flex-start; }
@@ -108,7 +108,7 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
   background: var(--card);
 }
 
-.controls { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; align-items: stretch; justify-content: space-between; gap: 12px; }
+.controls { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; align-items: stretch; justify-content: space-between; gap: 18px; }
 
 /* Directional pad — one housing, four raised zones, a center hub. */
 .dpad {
@@ -136,7 +136,10 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 .side-col.left { justify-content: center; }
 .side-col .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
 .side-col .btn .ico { width: 16px; height: 16px; flex: none; }
-#btn-undo { flex: 1 1 auto; padding: 12px 8px; font-size: 16px; }          /* right, fills the column height */
+/* Inset the buttons away from the d-pad: a dead strip next to the arrows (plus the
+   wider gap) so the big buttons aren't tapped by accident when reaching for an arrow. */
+.side-col.left .btn { margin-right: 16px; }
+#btn-undo { flex: 1 1 auto; padding: 12px 8px; font-size: 16px; margin-left: 16px; }   /* right, fills column height */
 #btn-restart { padding: 9px 8px; font-size: 13px; }                        /* left, top */
 /* Reset: a live but quiet tertiary (never dimmed). Wine text marks the destructive one. */
 #hard-reset { font-size: 11px; letter-spacing: .04em; padding: 8px; background: var(--card); color: var(--wine); border-color: var(--ink); box-shadow: 0 2px 0 var(--ink); }
