@@ -57,9 +57,9 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 }
 .input:focus { outline: 3px solid var(--pink); }
 .input::placeholder { color: var(--muted); opacity: 1; }
-.tut-demo { image-rendering: pixelated; width: min(260px, 80%); height: auto; display: block; margin: 6px auto 4px;
-  border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 4px 0 var(--ink); background: var(--card); }
-.tut-cap { text-align: center; color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
+.tut-rows { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 8px 0 4px; }
+.tut-demo { image-rendering: pixelated; height: 68px; width: auto; display: block;
+  border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 3px 0 var(--ink); background: var(--card); }
 .tips { text-align: left; display: flex; flex-direction: column; gap: 12px; }
 .tip { display: flex; gap: 10px; align-items: flex-start; }
 .tip b { font-family: var(--title); }

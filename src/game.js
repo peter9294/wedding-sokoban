@@ -22,12 +22,15 @@ const FALLBACK_LEVELS = [{
 const FINALE_KEY = 'sp-finale-v1';
 const FINALE_WRAP = { name: 'Happily Ever After', lighting: 'golden', wallStyle: 'blossom' };
 
-// Tutorial demo: a tiny board that loops the groom walking over and pushing a gift
-// onto a petal heart (gift turns gold). Reuses the real engine + sprites.
-const DEMO_LEVEL = { lighting: 'golden', wallStyle: 'hedge', floor: ['......', '....x.', '......'], map: ['######', '#@.$.#', '######'] };
-const DEMO_SCRIPT = ['right', 'right'];
+// Tutorial: three tiny looping demos (real engine + sprites) shown as rows —
+// push a gift onto a heart, match a colour, then reach the bride to win.
 const DEMO_DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
-let demoLevel = null, demoState = null, demoRenderer = null, demoCtx = null, demoRAF = 0, demoTimer = 0, demoAnim = null;
+const DEMOS = [
+  { id: 'tut-demo-1', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['......', '....x.', '......'], map: ['######', '#@.$.#', '######'] }, script: ['right', 'right'] },
+  { id: 'tut-demo-2', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['......', '....1.', '......'], map: ['######', '#@.1.#', '######'] }, script: ['right', 'right'] },
+  { id: 'tut-demo-3', def: { lighting: 'golden', wallStyle: 'hedge', floor: ['.....', '...x.', '.....', '.....', '.....'], map: ['#####', '#@$.#', '#.c.#', '#.B.#', '#####'] }, script: ['right', 'down', 'down'] }
+];
+let demoControllers = [];
 
 let LEVELS = [];
 let IDS = [];
@@ -141,7 +144,7 @@ function showScreen(name) {
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
   if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); $('id-tip').hidden = true; }
-  if (name === 'tutorial') startTutorialDemo(); else stopTutorialDemo();
+  if (name === 'tutorial') startTutorialDemos(); else stopTutorialDemos();
   if (name === 'play') requestAnimationFrame(fitCanvas);
 }
 
@@ -417,45 +420,49 @@ function startLoop() {
   requestAnimationFrame(loop);
 }
 
-// ---- tutorial demo (looping animation) -------------------------------------
-function startTutorialDemo() {
-  stopTutorialDemo();
-  const cv = $('tut-demo');
-  if (!cv || !sprites) return;
-  if (!demoRenderer) { demoRenderer = new Renderer(sprites); demoRenderer.initials = { bride: '', groom: '' }; }
-  demoLevel = new Level(DEMO_LEVEL);
-  cv.width = demoLevel.w * 16; cv.height = demoLevel.h * 16;
-  demoCtx = cv.getContext('2d');
-  demoState = demoLevel.fresh(); demoRenderer.reset(); demoAnim = null;
-
-  const loop = (t) => { if (!demoCtx) return; demoRenderer.draw(demoCtx, demoLevel, demoState, t, demoAnim); demoRAF = requestAnimationFrame(loop); };
-  demoRAF = requestAnimationFrame(loop);
-
-  let si = 0;
+// ---- tutorial demos (looping animations) -----------------------------------
+function startTutorialDemos() {
+  stopTutorialDemos();
+  if (!sprites) return;
+  demoControllers = DEMOS.map(makeDemo).filter(Boolean);
+}
+function stopTutorialDemos() {
+  demoControllers.forEach((c) => c.stop());
+  demoControllers = [];
+}
+function makeDemo(spec) {
+  const cv = $(spec.id);
+  if (!cv) return null;
+  const rnd = new Renderer(sprites); rnd.initials = { bride: '', groom: '' };
+  const level = new Level(spec.def);
+  cv.width = level.w * 16; cv.height = level.h * 16;
+  const ctx = cv.getContext('2d');
+  let state = level.fresh(), anim = null, raf = 0, timer = 0, alive = true, si = 0;
+  const loop = (t) => { if (!alive) return; rnd.draw(ctx, level, state, t, anim); raf = requestAnimationFrame(loop); };
+  raf = requestAnimationFrame(loop);
+  const reset = () => { state = level.fresh(); rnd.reset(); anim = null; si = 0; timer = setTimeout(step, 700); };
   const step = () => {
-    if (si >= DEMO_SCRIPT.length) {  // finished — hold the solved frame, then reset and loop
-      demoTimer = setTimeout(() => { demoState = demoLevel.fresh(); demoRenderer.reset(); demoAnim = null; si = 0; demoTimer = setTimeout(step, 700); }, 1500);
-      return;
-    }
-    const dir = DEMO_SCRIPT[si++], [dr, dc] = DEMO_DIRS[dir];
-    const pPlayer = demoState.player, pBoxes = demoState.boxes;
-    const res = demoLevel.step(demoState, dr, dc, dir);
-    demoState = res.state;
-    if (res.anim) demoAnim = res.anim;
+    if (si >= spec.script.length) { timer = setTimeout(reset, 1600); return; }  // hold solved frame, then loop
+    const dir = spec.script[si++], [dr, dc] = DEMO_DIRS[dir];
+    const pP = state.player, pB = state.boxes;
+    const res = level.step(state, dr, dc, dir);
+    state = res.state;
+    if (res.anim) anim = res.anim;
     if (res.moved) {
       const now = performance.now();
-      demoRenderer.pA = { fr: pPlayer.r, fc: pPlayer.c, start: now, dur: 160, warp: false };
-      const pb = demoState.boxes.findIndex((b, i) => b !== pBoxes[i]);
-      demoRenderer.bA = pb >= 0 ? { i: pb, fr: pBoxes[pb].r, fc: pBoxes[pb].c, start: now, dur: 160 } : null;
+      rnd.pA = { fr: pP.r, fc: pP.c, start: now, dur: 160, warp: false };
+      const pb = state.boxes.findIndex((b, i) => b !== pB[i]);
+      rnd.bA = pb >= 0 ? { i: pb, fr: pB[pb].r, fc: pB[pb].c, start: now, dur: 160 } : null;
+      if (res.won && level.BRIDES && level.BRIDES.length) {  // celebrate only the reach-the-bride demo
+        const cx = state.player.c * 16 + 8, cy = state.player.r * 16 + 4;
+        const cols = ['#e0507a', '#f7a1bd', '#f6c94f', '#fffaf4', '#b0e8f7', '#9ad35b'];
+        rnd.confetti = { t: now + 120, ps: Array.from({ length: 48 }, (_, i) => { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.6, v = 60 + Math.random() * 90; return { x: cx, y: cy, vx: Math.cos(a) * v, vy: Math.sin(a) * v, col: cols[i % cols.length], s: Math.random() < 0.3 ? 2 : 1, spin: 2 + Math.random() * 6 }; }) };
+      }
     }
-    demoTimer = setTimeout(step, 780);
+    timer = setTimeout(step, 780);
   };
-  demoTimer = setTimeout(step, 800);
-}
-function stopTutorialDemo() {
-  if (demoRAF) cancelAnimationFrame(demoRAF);
-  if (demoTimer) clearTimeout(demoTimer);
-  demoRAF = 0; demoTimer = 0; demoCtx = null;
+  timer = setTimeout(step, 800);
+  return { stop: () => { alive = false; if (raf) cancelAnimationFrame(raf); if (timer) clearTimeout(timer); } };
 }
 
 // ---- input -----------------------------------------------------------------
