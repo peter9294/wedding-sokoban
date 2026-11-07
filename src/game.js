@@ -22,6 +22,13 @@ const FALLBACK_LEVELS = [{
 const FINALE_KEY = 'sp-finale-v1';
 const FINALE_WRAP = { name: 'Happily Ever After', lighting: 'golden', wallStyle: 'blossom' };
 
+// Tutorial demo: a tiny board that loops the groom walking over and pushing a gift
+// onto a petal heart (gift turns gold). Reuses the real engine + sprites.
+const DEMO_LEVEL = { lighting: 'golden', wallStyle: 'hedge', floor: ['......', '....x.', '......'], map: ['######', '#@.$.#', '######'] };
+const DEMO_SCRIPT = ['right', 'right'];
+const DEMO_DIRS = { up: [-1, 0], down: [1, 0], left: [0, -1], right: [0, 1] };
+let demoLevel = null, demoState = null, demoRenderer = null, demoCtx = null, demoRAF = 0, demoTimer = 0, demoAnim = null;
+
 let LEVELS = [];
 let IDS = [];
 let sprites, renderer, ctx;
@@ -134,6 +141,7 @@ function showScreen(name) {
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
   if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); $('id-tip').hidden = true; }
+  if (name === 'tutorial') startTutorialDemo(); else stopTutorialDemo();
   if (name === 'play') requestAnimationFrame(fitCanvas);
 }
 
@@ -407,6 +415,47 @@ function startLoop() {
     requestAnimationFrame(loop);
   };
   requestAnimationFrame(loop);
+}
+
+// ---- tutorial demo (looping animation) -------------------------------------
+function startTutorialDemo() {
+  stopTutorialDemo();
+  const cv = $('tut-demo');
+  if (!cv || !sprites) return;
+  if (!demoRenderer) { demoRenderer = new Renderer(sprites); demoRenderer.initials = { bride: '', groom: '' }; }
+  demoLevel = new Level(DEMO_LEVEL);
+  cv.width = demoLevel.w * 16; cv.height = demoLevel.h * 16;
+  demoCtx = cv.getContext('2d');
+  demoState = demoLevel.fresh(); demoRenderer.reset(); demoAnim = null;
+
+  const loop = (t) => { if (!demoCtx) return; demoRenderer.draw(demoCtx, demoLevel, demoState, t, demoAnim); demoRAF = requestAnimationFrame(loop); };
+  demoRAF = requestAnimationFrame(loop);
+
+  let si = 0;
+  const step = () => {
+    if (si >= DEMO_SCRIPT.length) {  // finished — hold the solved frame, then reset and loop
+      demoTimer = setTimeout(() => { demoState = demoLevel.fresh(); demoRenderer.reset(); demoAnim = null; si = 0; demoTimer = setTimeout(step, 700); }, 1500);
+      return;
+    }
+    const dir = DEMO_SCRIPT[si++], [dr, dc] = DEMO_DIRS[dir];
+    const pPlayer = demoState.player, pBoxes = demoState.boxes;
+    const res = demoLevel.step(demoState, dr, dc, dir);
+    demoState = res.state;
+    if (res.anim) demoAnim = res.anim;
+    if (res.moved) {
+      const now = performance.now();
+      demoRenderer.pA = { fr: pPlayer.r, fc: pPlayer.c, start: now, dur: 160, warp: false };
+      const pb = demoState.boxes.findIndex((b, i) => b !== pBoxes[i]);
+      demoRenderer.bA = pb >= 0 ? { i: pb, fr: pBoxes[pb].r, fc: pBoxes[pb].c, start: now, dur: 160 } : null;
+    }
+    demoTimer = setTimeout(step, 780);
+  };
+  demoTimer = setTimeout(step, 800);
+}
+function stopTutorialDemo() {
+  if (demoRAF) cancelAnimationFrame(demoRAF);
+  if (demoTimer) clearTimeout(demoTimer);
+  demoRAF = 0; demoTimer = 0; demoCtx = null;
 }
 
 // ---- input -----------------------------------------------------------------

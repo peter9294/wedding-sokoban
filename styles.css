@@ -57,6 +57,9 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 }
 .input:focus { outline: 3px solid var(--pink); }
 .input::placeholder { color: var(--muted); opacity: 1; }
+.tut-demo { image-rendering: pixelated; width: min(260px, 80%); height: auto; display: block; margin: 6px auto 4px;
+  border: 3px solid var(--ink); border-radius: 10px; box-shadow: 0 4px 0 var(--ink); background: var(--card); }
+.tut-cap { text-align: center; color: var(--muted); font-size: 12.5px; margin: 0 0 8px; }
 .tips { text-align: left; display: flex; flex-direction: column; gap: 12px; }
 .tip { display: flex; gap: 10px; align-items: flex-start; }
 .tip b { font-family: var(--title); }
@@ -105,7 +108,7 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
   background: var(--card);
 }
 
-.controls { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 16px; }
+.controls { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); display: flex; align-items: stretch; justify-content: space-between; gap: 12px; }
 
 /* Directional pad — one housing, four raised zones, a center hub. */
 .dpad {
@@ -127,16 +130,16 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 .dpad .hub { grid-column: 2; grid-row: 2; }
 .dpad .hub::after { content: ''; width: 14px; height: 14px; border-radius: 5px; background: var(--rule); box-shadow: inset 0 0 0 2px var(--card); }
 
-.action-col { flex: 1 1 auto; max-width: 240px; display: flex; flex-direction: column; gap: 8px; }
-.action-col .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
-.action-col .btn .ico { width: 18px; height: 18px; flex: none; }
-#btn-undo { width: 100%; padding: 14px; font-size: 17px; }                 /* biggest */
-.action-row { display: flex; gap: 8px; align-items: stretch; }
-#btn-restart { flex: 1 1 auto; padding: 10px 12px; font-size: 13px; }      /* second */
-#btn-restart .ico { width: 16px; height: 16px; }
-/* Reset: smallest; a live but quiet tertiary (never dimmed, so it never reads as
-   disabled). Wine text marks it as the destructive one. */
-#hard-reset { flex: 0 0 auto; font-size: 11px; letter-spacing: .04em; padding: 8px 11px; background: var(--card); color: var(--wine); border-color: var(--ink); box-shadow: 0 2px 0 var(--ink); }
+/* Flanking columns keep the d-pad centered: Retry + Start over stacked on the
+   left, UNDO on the right. Both columns are thin (equal flex) so the pad sits dead center. */
+.side-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.side-col.left { justify-content: center; }
+.side-col .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; }
+.side-col .btn .ico { width: 16px; height: 16px; flex: none; }
+#btn-undo { flex: 1 1 auto; padding: 12px 8px; font-size: 16px; }          /* right, fills the column height */
+#btn-restart { padding: 9px 8px; font-size: 13px; }                        /* left, top */
+/* Reset: a live but quiet tertiary (never dimmed). Wine text marks the destructive one. */
+#hard-reset { font-size: 11px; letter-spacing: .04em; padding: 8px; background: var(--card); color: var(--wine); border-color: var(--ink); box-shadow: 0 2px 0 var(--ink); }
 #hard-reset:active { transform: translateY(2px); box-shadow: none; }
 
 /* ---- Overlays (win / all-clear) ---- */

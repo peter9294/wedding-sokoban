@@ -28,6 +28,8 @@
       <div class="sheet">
         <div class="eyebrow">How to play</div>
         <div class="title" id="tut-welcome">Welcome!</div>
+        <canvas id="tut-demo" class="tut-demo" width="96" height="48" aria-hidden="true"></canvas>
+        <div class="tut-cap">Push each gift onto a petal heart &#128151;</div>
         <div class="tips">
           <div class="tip"><b>&#8596;</b><span><b>Swipe to walk.</b> Walk into a gift to push it. You can't pull.</span></div>
           <div class="tip"><b>&#9829;</b><span><b>Fill every heart.</b> A gift turns gold when it lands on a petal heart.</span></div>
@@ -59,6 +61,10 @@
       </div>
 
       <div class="controls">
+        <div class="side-col left">
+          <button class="btn secondary" id="btn-restart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5A8 8 0 1 0 18 17"/><path d="M20 4v6h-6"/></svg><span>Retry</span></button>
+          <button class="btn ghost reset" id="hard-reset" title="Clear all saved progress on this device and reload">Start over</button>
+        </div>
         <div class="dpad">
           <div class="pad du" data-dir="up" role="button" aria-label="Move up"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
           <div class="pad dl" data-dir="left" role="button" aria-label="Move left"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
@@ -66,12 +72,8 @@
           <div class="pad dr" data-dir="right" role="button" aria-label="Move right"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
           <div class="pad dd" data-dir="down" role="button" aria-label="Move down"><svg class="arr" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.5l7.5 11.5a1 1 0 0 1-.84 1.5H5.34a1 1 0 0 1-.84-1.5z"/></svg></div>
         </div>
-        <div class="action-col">
+        <div class="side-col right">
           <button class="btn" id="btn-undo"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h11a5 5 0 0 1 0 10h-2"/></svg><span>UNDO</span></button>
-          <div class="action-row">
-            <button class="btn secondary" id="btn-restart"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5A8 8 0 1 0 18 17"/><path d="M20 4v6h-6"/></svg><span>Retry</span></button>
-            <button class="btn ghost reset" id="hard-reset" title="Clear all saved progress on this device and reload">Start over</button>
-          </div>
         </div>
       </div>
 
