@@ -5,6 +5,7 @@
 // submission — a score goes out only on a win.
 import { CONFIG, CAN_SUBMIT } from '../config.js';
 import { normName } from './storage.js';
+import { shortId } from './util.js';
 
 // Fire-and-forget: no-cors responses are opaque (we can't read success), and
 // keepalive lets the POST complete even if the tab closes right after the win.
@@ -117,11 +118,4 @@ export function buildLeaderboard(rows) {
   const list = [...byKey.values()].sort((a, b) => (b.solved - a.solved) || (t(a) - t(b)) || (a.atRow - b.atRow));
   const top = CONFIG.leaderboard.top || 100;
   return list.slice(0, top).map((e) => ({ ...e, uid: shortId(e.session) }));
-}
-
-// A short, stable tag shown faintly beside the name so two players with the same
-// name can be told apart (same device -> same tag). Derived from the session id.
-function shortId(session) {
-  const s = String(session || '').replace(/^s_/, '');
-  return s ? s.slice(0, 4).toLowerCase() : '';
 }

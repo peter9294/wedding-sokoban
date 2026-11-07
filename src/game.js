@@ -6,7 +6,7 @@ import { buildSprites } from './sprites.js';
 import { Renderer } from './render.js';
 import { loadProgress, saveProgress, clampName, newSessionId } from './storage.js';
 import { submitScore, scoringOpen } from './score.js';
-import { escapeHtml } from './util.js';
+import { escapeHtml, shortId } from './util.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -115,7 +115,7 @@ function showScreen(name) {
   $('screen-menu').hidden = name !== 'menu';
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
-  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); }
+  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); $('id-tip').hidden = true; }
   if (name === 'play') requestAnimationFrame(fitCanvas);
 }
 
@@ -315,6 +315,19 @@ function cancelName() {
   showScreen('menu');
 }
 
+// Tapping the player's name reveals their leaderboard tag (matches the "(xxxx)"
+// shown next to names on the board), so they can find their own row.
+let idTipTimer = null;
+function toggleIdTip() {
+  const el = $('id-tip');
+  if (!el.hidden) { el.hidden = true; clearTimeout(idTipTimer); return; }
+  const tag = shortId(progress.sessionId);
+  el.textContent = tag ? ('You’re (' + tag + ') on the leaderboard') : 'Your tag appears once you play';
+  el.hidden = false;
+  clearTimeout(idTipTimer);
+  idTipTimer = setTimeout(() => { el.hidden = true; }, 6000);
+}
+
 // "?" button on the play screen — reread the tips, then return to the current stage.
 function openHelp() {
   tutorialFrom = 'play-help';
@@ -384,6 +397,7 @@ function bindEvents() {
   $('menu-howto').addEventListener('click', openHowTo);
   $('btn-menu').addEventListener('click', goMenu);
   $('btn-help').addEventListener('click', openHelp);
+  $('hud-user').addEventListener('click', toggleIdTip);
   $('confirm-name').addEventListener('click', confirmName);
   $('name-back').addEventListener('click', cancelName);
   $('overlay-name').addEventListener('click', (e) => { if (e.target.id === 'overlay-name') cancelName(); });
