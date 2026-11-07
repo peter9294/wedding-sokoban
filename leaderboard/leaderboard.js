@@ -4,6 +4,7 @@
 // 11–25 grid. Ranking is most distinct stages; ties break by earliest finish.
 import { CONFIG, CAN_READ } from '../config.js';
 import { fetchSheetRows, buildLeaderboard } from '../src/score.js';
+import { escapeHtml } from '../src/util.js';
 
 const bodyEl = document.getElementById('lb-body');
 const statusEl = document.getElementById('lb-status');
@@ -12,10 +13,6 @@ const tvBtn = document.getElementById('tv-toggle');
 let timer = null;
 let lastGood = null;    // last successfully rendered board
 let backoff = 0;        // grows on consecutive errors
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
 function hhmmss(d) {
   const z = (n) => String(n).padStart(2, '0');
   return z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds());
@@ -76,11 +73,18 @@ function renderBoard(board) {
   // that would overflow, so the board fills the screen without scrolling. The phone
   // view keeps everyone and simply scrolls.
   if (document.body.classList.contains('tv')) {
-    const lb = document.querySelector('.lb');
     const gridEl = bodyEl.querySelector('.lb-grid');
-    let guard = 0;
-    while (gridEl && lb.scrollHeight > window.innerHeight && gridEl.lastElementChild && guard++ < 1000) {
-      gridEl.removeChild(gridEl.lastElementChild);
+    if (gridEl && gridEl.children.length) {
+      // Cells are uniform, so compute how many whole rows fit in one measurement pass
+      // (instead of removing one cell at a time and reflowing each iteration).
+      const cs = getComputedStyle(gridEl);
+      const cols = cs.gridTemplateColumns.split(' ').filter(Boolean).length || 1;
+      const rowGap = parseFloat(cs.rowGap) || 0;
+      const rowH = gridEl.children[0].getBoundingClientRect().height + rowGap;
+      const avail = window.innerHeight - gridEl.getBoundingClientRect().top;
+      const rowsFit = rowH > 0 ? Math.max(0, Math.floor((avail + rowGap) / rowH)) : 0;
+      const keep = rowsFit * cols;
+      while (gridEl.children.length > keep) gridEl.removeChild(gridEl.lastElementChild);
     }
   }
 }
@@ -124,7 +128,7 @@ document.addEventListener('visibilitychange', () => {
 function setTv(on) {
   document.body.classList.toggle('tv', on);
   if (tvBtn) tvBtn.textContent = on ? '✕ Exit big screen' : '⛶ Big screen';
-  try { localStorage.setItem('sp-lb-tv', on ? '1' : '0'); } catch { /* ignore */ }
+  if (lastGood) renderBoard(lastGood);   // re-apply the layout + viewport-fill for the new mode now
   if (on && document.documentElement.requestFullscreen) {
     document.documentElement.requestFullscreen().catch(() => { /* user can full-screen manually */ });
   } else if (!on && document.fullscreenElement && document.exitFullscreen) {
@@ -133,12 +137,10 @@ function setTv(on) {
 }
 if (tvBtn) tvBtn.addEventListener('click', () => setTv(!document.body.classList.contains('tv')));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('tv')) setTv(false); });
-// Start in big-screen mode from ?tv=1 (for the venue laptop) or a remembered choice.
-(function initTv() {
-  let want = new URLSearchParams(location.search).get('tv') === '1';
-  if (!want) { try { want = localStorage.getItem('sp-lb-tv') === '1'; } catch { /* ignore */ } }
-  if (want) setTv(true);
-})();
+// Big-screen mode is opt-in per load via ?tv=1 (bookmark that on the venue laptop).
+// Deliberately NOT persisted, so a guest who taps the toggle on their phone isn't
+// locked into the cramped projector layout on later visits.
+if (new URLSearchParams(location.search).get('tv') === '1') setTv(true);
 
 if (!CAN_READ) {
   bodyEl.innerHTML = '<div class="lb-empty">The leaderboard isn’t connected yet.<br><br>Run the one-time setup (see <b>SETUP.md</b>) and paste the sheet URL into <b>config.js</b>.</div>';

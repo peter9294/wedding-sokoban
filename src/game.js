@@ -6,9 +6,9 @@ import { buildSprites } from './sprites.js';
 import { Renderer } from './render.js';
 import { loadProgress, saveProgress, clampName, newSessionId } from './storage.js';
 import { submitScore, scoringOpen } from './score.js';
+import { escapeHtml } from './util.js';
 
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 const FALLBACK_LEVELS = [{
   name: 'Warm-up', lighting: 'day', wallStyle: 'hedge',
@@ -64,12 +64,18 @@ async function init() {
 
   bindEvents();
   startLoop();
-  startClock();
 
   // Everyone lands on the main menu — no name needed to get here or to view the
   // leaderboard. The name is asked only when they actually start playing (stage 1).
   $('name-input').value = progress.name || '';
   showScreen('menu');
+}
+
+// FNV-1a hash → a stable non-negative int, for a deterministic-but-varied finale pick.
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
 }
 
 // Pick (once) and pin the surprise finale board, then append it as the last stage.
@@ -88,7 +94,11 @@ async function appendFinale() {
     } catch { /* ignore a corrupt/blocked store */ }
 
     if (!board) {
-      const pick = pool[Math.floor(Math.random() * pool.length)];
+      // Deterministic pick from the player's session id, so the finale is stable for a
+      // given player even if the pin write fails — the localStorage pin is just a cache.
+      // (Pure private mode regenerates the session id each load, so it can still vary there.)
+      const seed = (progress && progress.sessionId) ? hashStr(progress.sessionId) : Math.floor(Math.random() * pool.length);
+      const pick = pool[seed % pool.length];
       board = { floor: pick.floor, map: pick.map };
       try { localStorage.setItem(FINALE_KEY, JSON.stringify(board)); } catch { /* private mode: still playable, just not pinned */ }
     }
@@ -298,6 +308,13 @@ function gotIt() {
   else enterGame();
 }
 
+// Back out of the name prompt without naming/playing, so "just looking" guests
+// (who tapped PLAY then changed their mind) aren't trapped on the overlay.
+function cancelName() {
+  hideOverlay('overlay-name');
+  showScreen('menu');
+}
+
 // "?" button on the play screen — reread the tips, then return to the current stage.
 function openHelp() {
   tutorialFrom = 'play-help';
@@ -317,28 +334,13 @@ function saveCurrent() {
 
 // ---- HUD / controls --------------------------------------------------------
 function updateHUD() {
-  $('hud-stage').innerHTML = '<span class="num">' + (stageIdx + 1) + '</span> · ' + esc(level.name);
+  $('hud-stage').innerHTML = '<span class="num">' + (stageIdx + 1) + '</span> · ' + escapeHtml(level.name);
   $('hud-user').textContent = 'Hi, ' + (progress.name || 'friend');
   $('hud-solved').textContent = 'Solved ' + progress.cleared.length;
 }
 function updateControls() {
   const u = $('btn-undo');
   u.disabled = won || !state || state.hist.length === 0;
-}
-function clockVals() {
-  const end = new Date(CONFIG.weddingDate);
-  const ok = !isNaN(end);
-  const left = ok ? Math.max(0, end - Date.now()) : 0;
-  const t = Math.floor(left / 1000), d = Math.floor(t / 86400), hh = Math.floor((t % 86400) / 3600), mm = Math.floor((t % 3600) / 60), ss = t % 60;
-  const z = (n) => String(n).padStart(2, '0');
-  const countdown = !ok ? '--:--:--' : left === 0 ? "TIME'S UP" : (d ? d + 'd ' : '') + z(hh) + ':' + z(mm) + ':' + z(ss);
-  const countLabel = left === 0 && ok ? '' : 'Ends in';
-  return { countdown, countLabel };
-}
-function startClock() {
-  const tick = () => { const v = clockVals(); $('hud-countdown').textContent = v.countdown; $('hud-countlabel').textContent = v.countLabel; };
-  tick();
-  setInterval(tick, 1000);
 }
 
 // ---- overlays / toast ------------------------------------------------------
@@ -383,6 +385,8 @@ function bindEvents() {
   $('btn-menu').addEventListener('click', goMenu);
   $('btn-help').addEventListener('click', openHelp);
   $('confirm-name').addEventListener('click', confirmName);
+  $('name-back').addEventListener('click', cancelName);
+  $('overlay-name').addEventListener('click', (e) => { if (e.target.id === 'overlay-name') cancelName(); });
   $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmName(); } });
   $('got-it').addEventListener('click', gotIt);
   $('btn-undo').addEventListener('click', undo);
@@ -408,7 +412,7 @@ function bindEvents() {
 
   window.addEventListener('keydown', (e) => {
     if (currentScreen !== 'play') return;
-    if (!$('overlay-name').hidden) return;  // typing a name — don't hijack letter keys
+    if (!$('overlay-name').hidden) { if (e.key === 'Escape') cancelName(); return; }  // typing a name — don't hijack letter keys
     if (!$('overlay-reset').hidden) { if (e.key === 'Escape') hideOverlay('overlay-reset'); return; }
     if (!$('overlay-win').hidden || !$('overlay-allclear').hidden) return; // popup open: ignore game keys
     const k = e.key.toLowerCase();
