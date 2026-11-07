@@ -44,7 +44,7 @@ function renderBoard(board) {
 
   const top3 = board.slice(0, 3);
   const mid = board.slice(3, 10);
-  const rest = board.slice(10, 25);
+  const rest = board.slice(10);   // everyone else; the big screen trims to fit (below)
 
   const podium = '<div class="lb-podium">' + top3.map((e, i) =>
     '<div class="pod pod' + (i + 1) + '">' +
@@ -71,6 +71,18 @@ function renderBoard(board) {
     '</div>').join('') + '</div>' : '';
 
   bodyEl.innerHTML = podium + list + grid;
+
+  // Big-screen (venue): show as many as the viewport holds — drop any grid cells
+  // that would overflow, so the board fills the screen without scrolling. The phone
+  // view keeps everyone and simply scrolls.
+  if (document.body.classList.contains('tv')) {
+    const lb = document.querySelector('.lb');
+    const gridEl = bodyEl.querySelector('.lb-grid');
+    let guard = 0;
+    while (gridEl && lb.scrollHeight > window.innerHeight && gridEl.lastElementChild && guard++ < 1000) {
+      gridEl.removeChild(gridEl.lastElementChild);
+    }
+  }
 }
 
 function setStatus(live, text) {
