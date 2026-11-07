@@ -42,7 +42,9 @@ body { overflow: hidden; overscroll-behavior: none; }
 .btn[disabled] { opacity: .45; box-shadow: none; cursor: default; }
 .btn.secondary { background: var(--card); color: var(--ink); }
 .btn.ghost { background: transparent; color: var(--wine); border-color: var(--rule); box-shadow: 0 2px 0 var(--rule); }
+a.btn { text-decoration: none; display: flex; align-items: center; justify-content: center; }
 .link { color: var(--wine); font-size: 12px; text-decoration: underline; cursor: pointer; }
+button.link { background: none; border: none; box-shadow: none; padding: 6px; font-family: var(--body); }
 
 /* ---- Landing / Tutorial ---- */
 .sheet { margin: auto; width: min(92%, 400px); text-align: center; display: flex; flex-direction: column; gap: 14px; }
@@ -68,7 +70,13 @@ body { overflow: hidden; overscroll-behavior: none; }
   display: flex; justify-content: space-between; align-items: flex-start;
   padding: 10px 14px 6px; gap: 8px; border-bottom: 2px solid var(--ink); background: var(--card);
 }
-.hud .stage { font-family: var(--title); font-weight: 400; font-size: 16px; }
+.hud-left { display: flex; align-items: flex-start; gap: 8px; min-width: 0; flex: 1; }
+.hud-info { min-width: 0; }
+.hud-menu { flex: none; background: var(--card); color: var(--ink); border: 2px solid var(--ink); border-radius: 8px;
+  box-shadow: 0 2px 0 var(--ink); font-family: var(--title); font-weight: 400; font-size: 16px; line-height: 1;
+  padding: 6px 10px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hud-menu:active { transform: translateY(2px); box-shadow: none; }
+.hud .stage { font-family: var(--title); font-weight: 400; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Numbers read poorly in the pixel title font — render any display number in the mono body font. */
 .num { font-family: var(--body); font-weight: 500; letter-spacing: 0; }
 .hud .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }

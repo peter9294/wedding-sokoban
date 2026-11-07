@@ -12,17 +12,14 @@
 </head>
 <body>
   <div id="app">
-    <!-- Landing -->
-    <section class="screen" id="screen-name">
-      <div class="topbar">
-        <span class="eyebrow">groom needs help!</span>
-        <a class="link" href="./leaderboard/" target="_blank" rel="noopener">Leaderboard &#8599;</a>
-      </div>
+    <!-- Main menu -->
+    <section class="screen" id="screen-menu">
       <div class="sheet">
         <div class="title">groom needs help!</div>
-        <div class="lead">You're invited! What should we call you?</div>
-        <input class="input" id="name-input" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Your name" />
-        <button class="btn" id="confirm-name">CONFIRM</button>
+        <div class="lead">Help the groom down the aisle &mdash; push every gift onto a heart.</div>
+        <button class="btn" id="menu-play" type="button">PLAY</button>
+        <a class="btn secondary menu-link" id="menu-leaderboard" href="./leaderboard/">LEADERBOARD</a>
+        <button class="link" id="menu-howto" type="button">How to play</button>
       </div>
     </section>
 
@@ -43,9 +40,12 @@
     <!-- Play -->
     <section class="screen" id="screen-play" hidden>
       <header class="hud">
-        <div>
-          <div class="stage" id="hud-stage">1 &middot; Garden Ceremony</div>
-          <div class="sub" id="hud-user">Hi, friend</div>
+        <div class="hud-left">
+          <button class="hud-menu" id="btn-menu" type="button" aria-label="Main menu" title="Main menu">&#9776;</button>
+          <div class="hud-info">
+            <div class="stage" id="hud-stage">1 &middot; Garden Ceremony</div>
+            <div class="sub" id="hud-user">Hi, friend</div>
+          </div>
         </div>
         <div class="count">
           <div class="lbl" id="hud-countlabel">Ends in</div>
@@ -98,6 +98,17 @@
             <button class="btn secondary" id="replay-all">Play again</button>
             <a class="btn" href="./leaderboard/" target="_blank" rel="noopener" style="text-decoration:none;align-items:center;justify-content:center;display:flex;">Leaderboard</a>
           </div>
+        </div>
+      </div>
+
+      <!-- Name (asked at the first stage, so the menu/leaderboard need no name) -->
+      <div class="overlay" id="overlay-name" hidden>
+        <div class="panel">
+          <span class="tag">WELCOME</span>
+          <div class="big">You're invited!</div>
+          <div class="note">What should we call you on the leaderboard?</div>
+          <input class="input" id="name-input" maxlength="40" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Your name" />
+          <button class="btn" id="confirm-name" type="button">START PLAYING</button>
         </div>
       </div>
 

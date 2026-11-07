@@ -31,7 +31,8 @@ let state = null;
 let anim = null;
 let won = false;
 let progress;
-let currentScreen = 'name';
+let currentScreen = 'menu';
+let tutorialFrom = 'play';   // where GOT IT returns to: 'play' (start) or 'menu' (just reading)
 
 // ---- boot ------------------------------------------------------------------
 async function init() {
@@ -65,11 +66,10 @@ async function init() {
   startLoop();
   startClock();
 
-  // Prefill + route.
+  // Everyone lands on the main menu — no name needed to get here or to view the
+  // leaderboard. The name is asked only when they actually start playing (stage 1).
   $('name-input').value = progress.name || '';
-  if (progress.name && progress.tutorialSeen) enterGame();
-  else if (progress.name) { $('tut-welcome').textContent = 'Welcome, ' + progress.name + '!'; showScreen('tutorial'); }
-  else showScreen('name');
+  showScreen('menu');
 }
 
 // Pick (once) and pin the surprise finale board, then append it as the last stage.
@@ -102,12 +102,11 @@ async function appendFinale() {
 // ---- screen routing --------------------------------------------------------
 function showScreen(name) {
   currentScreen = name;
-  $('screen-name').hidden = name !== 'name';
+  $('screen-menu').hidden = name !== 'menu';
   $('screen-tutorial').hidden = name !== 'tutorial';
   $('screen-play').hidden = name !== 'play';
-  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); }
+  if (name !== 'play') { hideOverlay('overlay-win'); hideOverlay('overlay-allclear'); hideOverlay('overlay-reset'); hideOverlay('overlay-name'); }
   if (name === 'play') requestAnimationFrame(fitCanvas);
-  if (name === 'name') setTimeout(() => $('name-input').focus(), 30);
 }
 
 function firstUnclearedStage() {
@@ -123,6 +122,32 @@ function enterGame() {
   if (progress.current && progress.current.levelId === IDS[idx]) restore = progress.current;
   loadStage(idx, restore);
   showScreen('play');
+  // First time playing with no name yet → ask it here, on the first stage.
+  if (!progress.name) { showOverlay('overlay-name'); setTimeout(() => $('name-input').focus(), 40); }
+}
+
+// Main-menu PLAY: show the tutorial first (first time only), otherwise jump in.
+function onPlay() {
+  if (!progress.tutorialSeen) {
+    tutorialFrom = 'play';
+    $('tut-welcome').textContent = progress.name ? ('Welcome, ' + progress.name + '!') : 'Welcome!';
+    showScreen('tutorial');
+  } else {
+    enterGame();
+  }
+}
+
+// "How to play" from the menu — read the tips and return to the menu.
+function openHowTo() {
+  tutorialFrom = 'menu';
+  $('tut-welcome').textContent = progress.name ? ('Welcome back, ' + progress.name + '!') : 'How to play';
+  showScreen('tutorial');
+}
+
+// Back to the main menu from the game (progress is saved, so PLAY resumes here).
+function goMenu() {
+  if (state && currentScreen === 'play') saveCurrent();
+  showScreen('menu');
 }
 
 function loadStage(idx, restore) {
@@ -157,6 +182,7 @@ function loadStage(idx, restore) {
 // ---- actions ---------------------------------------------------------------
 function doMove(dr, dc, dir) {
   if (currentScreen !== 'play' || won || !level) return;
+  if (!$('overlay-name').hidden || !$('overlay-reset').hidden) return;  // a modal is open
   const prevPlayer = state.player, prevBoxes = state.boxes;
   const res = level.step(state, dr, dc, dir);
   state = res.state;
@@ -260,18 +286,15 @@ function confirmName() {
   progress.name = name;
   if (!progress.sessionId) progress.sessionId = newSessionId();
   saveProgress(progress);
-  if (!progress.tutorialSeen) {
-    $('tut-welcome').textContent = 'Welcome, ' + name + '!';
-    showScreen('tutorial');
-  } else {
-    enterGame();
-  }
+  hideOverlay('overlay-name');
+  updateHUD();
 }
 
 function gotIt() {
   progress.tutorialSeen = true;
   saveProgress(progress);
-  enterGame();
+  if (tutorialFrom === 'menu') showScreen('menu');
+  else enterGame();
 }
 
 // ---- persistence of the live board ----------------------------------------
@@ -347,6 +370,9 @@ function startLoop() {
 
 // ---- input -----------------------------------------------------------------
 function bindEvents() {
+  $('menu-play').addEventListener('click', onPlay);
+  $('menu-howto').addEventListener('click', openHowTo);
+  $('btn-menu').addEventListener('click', goMenu);
   $('confirm-name').addEventListener('click', confirmName);
   $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmName(); } });
   $('got-it').addEventListener('click', gotIt);
@@ -373,6 +399,7 @@ function bindEvents() {
 
   window.addEventListener('keydown', (e) => {
     if (currentScreen !== 'play') return;
+    if (!$('overlay-name').hidden) return;  // typing a name — don't hijack letter keys
     if (!$('overlay-reset').hidden) { if (e.key === 'Escape') hideOverlay('overlay-reset'); return; }
     if (!$('overlay-win').hidden || !$('overlay-allclear').hidden) return; // popup open: ignore game keys
     const k = e.key.toLowerCase();
