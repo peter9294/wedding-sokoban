@@ -80,9 +80,10 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 .hud-user { display: inline-block; margin-top: 2px; padding: 0; background: none; border: none;
   font-family: var(--body); font-size: 11px; color: var(--muted); cursor: pointer;
   text-decoration: underline dotted; text-underline-offset: 2px; -webkit-tap-highlight-color: transparent; }
-/* Floats below the name (absolute) so revealing the tag doesn't shift the HUD. */
-.id-tip { position: absolute; top: calc(100% + 4px); left: 0; z-index: 4; white-space: nowrap;
-  font-family: var(--body); font-size: 12px; color: var(--gold); background: var(--ink);
+/* Floats below the name (absolute) so revealing the tag doesn't shift the HUD.
+   Capped width + wrap so it never runs past the viewport edge and gets clipped. */
+.id-tip { position: absolute; top: calc(100% + 4px); left: 0; z-index: 4; max-width: min(72vw, 260px);
+  font-family: var(--body); font-size: 12px; line-height: 1.25; color: var(--gold); background: var(--ink);
   border-radius: 6px; padding: 3px 8px; box-shadow: 0 2px 0 var(--ink-deep); }
 .id-tip[hidden] { display: none; }
 .hud .stage { font-family: var(--title); font-weight: 400; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
