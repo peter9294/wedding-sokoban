@@ -8,6 +8,7 @@ import { loadProgress, saveProgress, clampName, newSessionId } from './storage.j
 import { submitScore, scoringOpen } from './score.js';
 
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
 const FALLBACK_LEVELS = [{
   name: 'Warm-up', lighting: 'day', wallStyle: 'hedge',
@@ -285,7 +286,7 @@ function saveCurrent() {
 
 // ---- HUD / controls --------------------------------------------------------
 function updateHUD() {
-  $('hud-stage').textContent = (stageIdx + 1) + ' · ' + level.name;
+  $('hud-stage').innerHTML = '<span class="num">' + (stageIdx + 1) + '</span> · ' + esc(level.name);
   $('hud-user').textContent = 'Hi, ' + (progress.name || 'friend');
   $('hud-solved').textContent = 'Solved ' + progress.cleared.length;
 }
