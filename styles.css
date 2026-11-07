@@ -110,7 +110,7 @@ body { overflow: hidden; overscroll-behavior: none; }
 .dpad .hub::after { content: ''; width: 14px; height: 14px; border-radius: 5px; background: var(--rule); box-shadow: inset 0 0 0 2px var(--card); }
 
 .action-col { flex: 1 1 auto; max-width: 240px; display: flex; flex-direction: column; gap: 8px; }
-.action-col .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.action-col .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
 .action-col .btn .ico { width: 18px; height: 18px; flex: none; }
 #btn-undo { width: 100%; padding: 14px; font-size: 17px; }                 /* biggest */
 .action-row { display: flex; gap: 8px; align-items: stretch; }
