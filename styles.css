@@ -181,6 +181,11 @@ button.link { background: none; border: none; box-shadow: none; padding: 6px; fo
 /* Destructive confirm button: quiet (secondary) with a wine tint, so the safe
    Cancel is the emphasized default and the dangerous action isn't the bright one. */
 .btn.secondary.danger { color: var(--wine); }
+/* Danger modal (Start over) — smaller and red-accented, so it's unmistakably the
+   destructive one, distinct from the neutral Retry confirm. */
+.panel.danger { width: min(86%, 264px); padding: 18px; border-color: var(--wine); box-shadow: 0 5px 0 var(--wine); }
+.panel.danger .tag { background: var(--wine); color: #fff; }
+.panel.danger .big { font-size: 22px; }
 
 .toast {
   position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%);
