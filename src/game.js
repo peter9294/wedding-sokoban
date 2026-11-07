@@ -293,8 +293,16 @@ function confirmName() {
 function gotIt() {
   progress.tutorialSeen = true;
   saveProgress(progress);
-  if (tutorialFrom === 'menu') showScreen('menu');
+  if (tutorialFrom === 'play-help') showScreen('play');   // resume the live stage, no reload
+  else if (tutorialFrom === 'menu') showScreen('menu');
   else enterGame();
+}
+
+// "?" button on the play screen — reread the tips, then return to the current stage.
+function openHelp() {
+  tutorialFrom = 'play-help';
+  $('tut-welcome').textContent = 'How to play';
+  showScreen('tutorial');
 }
 
 // ---- persistence of the live board ----------------------------------------
@@ -373,6 +381,7 @@ function bindEvents() {
   $('menu-play').addEventListener('click', onPlay);
   $('menu-howto').addEventListener('click', openHowTo);
   $('btn-menu').addEventListener('click', goMenu);
+  $('btn-help').addEventListener('click', openHelp);
   $('confirm-name').addEventListener('click', confirmName);
   $('name-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmName(); } });
   $('got-it').addEventListener('click', gotIt);
