@@ -40,8 +40,8 @@ function renderBoard(board) {
   const tie = (e) => counts[e.solved] > 1;
 
   const top3 = board.slice(0, 3);
-  const mid = board.slice(3, 10);
-  const rest = board.slice(10);   // everyone else; the big screen trims to fit (below)
+  const mid = board.slice(3, 11);
+  const rest = board.slice(11);   // everyone else; the big screen trims to fit (below)
 
   const podium = '<div class="lb-podium">' + top3.map((e, i) =>
     '<div class="pod pod' + (i + 1) + '">' +
@@ -62,7 +62,7 @@ function renderBoard(board) {
 
   const grid = rest.length ? '<div class="lb-grid">' + rest.map((e, i) =>
     '<div class="cell">' +
-      '<span class="rank">' + (i + 11) + '</span>' +
+      '<span class="rank">' + (i + 12) + '</span>' +
       '<span class="who">' + nameHtml(e) + '</span>' +
       '<span class="score">' + e.solved + '</span>' +
     '</div>').join('') + '</div>' : '';
